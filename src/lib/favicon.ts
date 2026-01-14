@@ -16,13 +16,36 @@ export function applyDefaultIconOnError(img: HTMLImageElement): void {
   img.src = DEFAULT_ICON_DATA_URI;
 }
 
+function buildProxyUrl(base: string, targetUrl: string): string {
+  const encoded = encodeURIComponent(targetUrl);
+
+  const raw = base.trim();
+  if (!raw) return '';
+
+  if (raw.startsWith('/')) {
+    const path = raw.replace(/\/+$/g, '') || '/ico';
+    const endpoint = path === '/' ? '/ico' : path;
+    return `${endpoint}?url=${encoded}`;
+  }
+
+  try {
+    const u = new URL(raw);
+    const path = u.pathname.replace(/\/+$/g, '') || '/ico';
+    u.pathname = path === '/' ? '/ico' : path;
+    u.searchParams.set('url', targetUrl);
+    return u.toString();
+  } catch {
+    return `${raw}?url=${encoded}`;
+  }
+}
+
 export function getLinkIconUrl(link: NavLink, faviconProxyBaseUrl = DEFAULT_FAVICON_PROXY): string {
   const icon = link.icon;
 
   if (!icon || icon.type === 'proxy') {
     if (faviconProxyBaseUrl) {
-      const encoded = encodeURIComponent(link.url);
-      return `${faviconProxyBaseUrl}?url=${encoded}`;
+      const direct = buildProxyUrl(faviconProxyBaseUrl, link.url);
+      if (direct) return direct;
     }
 
     try {
@@ -36,7 +59,8 @@ export function getLinkIconUrl(link: NavLink, faviconProxyBaseUrl = DEFAULT_FAVI
   if (icon.type === 'url') return icon.value;
   if (icon.type === 'base64') return icon.value;
 
-  return `${faviconProxyBaseUrl}?url=${encodeURIComponent(link.url)}`;
+  const direct = buildProxyUrl(faviconProxyBaseUrl, link.url);
+  return direct || DEFAULT_ICON_DATA_URI;
 }
 
 export function normalizeIconConfig(input: unknown): IconConfig | undefined {

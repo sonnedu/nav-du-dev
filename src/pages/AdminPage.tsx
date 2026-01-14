@@ -1,22 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
+import { useI18n } from '../lib/useI18n';
 import type { NavCategory, NavConfig, NavLink } from '../lib/navTypes';
 
 const CATEGORY_ICON_OPTIONS: Array<{ label: string; value: string }> = [
-  { label: '💻 开发', value: '💻' },
-  { label: '🤖 AI', value: '🤖' },
-  { label: '🧰 工具', value: '🧰' },
-  { label: '📚 文档', value: '📚' },
-  { label: '🔎 搜索', value: '🔎' },
-  { label: '✅ 效率', value: '✅' },
-  { label: '🎨 设计', value: '🎨' },
-  { label: '☁️ 云服务', value: '☁️' },
-  { label: '⚙️ DevOps', value: '⚙️' },
-  { label: '📰 资讯', value: '📰' },
-  { label: '🎬 视频', value: '🎬' },
-  { label: '🛒 购物', value: '🛒' },
-  { label: '💰 金融', value: '💰' },
-  { label: '📌 默认', value: '📌' },
+  { label: '💻', value: '💻' },
+  { label: '🤖', value: '🤖' },
+  { label: '🧰', value: '🧰' },
+  { label: '📚', value: '📚' },
+  { label: '🔎', value: '🔎' },
+  { label: '✅', value: '✅' },
+  { label: '🎨', value: '🎨' },
+  { label: '☁️', value: '☁️' },
+  { label: '⚙️', value: '⚙️' },
+  { label: '📰', value: '📰' },
+  { label: '🎬', value: '🎬' },
+  { label: '🛒', value: '🛒' },
+  { label: '💰', value: '💰' },
+  { label: '📌', value: '📌' },
 ];
 
 function resolveCategoryIcon(category: NavCategory): string {
@@ -47,16 +48,22 @@ function slugifyId(input: string): string {
   return `item-${Date.now().toString(36)}`;
 }
 
-type ModalName = 'none' | 'add' | 'edit' | 'import' | 'export';
+type ModalName = 'none' | 'add' | 'edit' | 'import' | 'export' | 'categories';
 
-function Modal(props: { title: string; onClose: () => void; children: React.ReactNode; actions?: React.ReactNode }) {
+function Modal(props: {
+  title: string;
+  onClose: () => void;
+  closeLabel: string;
+  children: React.ReactNode;
+  actions?: React.ReactNode;
+}) {
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" onMouseDown={props.onClose}>
       <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{props.title}</h3>
-          <button className="icon-btn" onClick={props.onClose} aria-label="关闭">
-            关闭
+          <button className="icon-btn" onClick={props.onClose} aria-label={props.closeLabel}>
+            {props.closeLabel}
           </button>
         </div>
         <div className="modal-body">{props.children}</div>
@@ -144,11 +151,14 @@ export function AdminPage(props: {
   onResetConfig: () => Promise<boolean>;
   title: string;
 }) {
+  const { m } = useI18n();
+
   const [user, setUser] = useState<AdminUser | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
 
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
 
   useEffect(() => {
@@ -171,6 +181,32 @@ export function AdminPage(props: {
   }, []);
 
   const [modal, setModal] = useState<ModalName>('none');
+
+  const [categoryDraft, setCategoryDraft] = useState<NavCategory[]>([]);
+  const [groupRenameDrafts, setGroupRenameDrafts] = useState<Record<string, string>>({});
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryGroup, setNewCategoryGroup] = useState('');
+  const [newCategoryOrder, setNewCategoryOrder] = useState('');
+  const [newCategoryIcon, setNewCategoryIcon] = useState('📌');
+
+  const openCategoryModal = () => {
+    setCategoryDraft(props.config.categories);
+    setGroupRenameDrafts({});
+    setNewCategoryName('');
+    setNewCategoryGroup('');
+    setNewCategoryOrder('');
+    setNewCategoryIcon('📌');
+    setModal('categories');
+  };
+
+  const categoryGroups = useMemo(() => {
+    const groups = new Set<string>();
+    for (const c of categoryDraft) {
+      const g = c.group?.trim();
+      if (g) groups.add(g);
+    }
+    return [...groups].sort((a, b) => a.localeCompare(b));
+  }, [categoryDraft]);
 
   const [addCategoryId, setAddCategoryId] = useState(() => props.config.categories[0]?.id ?? '');
   const effectiveAddCategoryId = useMemo(() => {
@@ -232,8 +268,13 @@ export function AdminPage(props: {
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
 
+    const idBase = slugifyId(name);
+    const existing = props.config.categories.find((c) => c.id === effectiveAddCategoryId);
+    const exists = new Set((existing?.items ?? []).map((i) => i.id));
+    const id = exists.has(idBase) ? `${idBase}-${Date.now().toString(36)}` : idBase;
+
     const link: NavLink = {
-      id: slugifyId(name),
+      id,
       name,
       url,
       desc: desc || undefined,
@@ -244,7 +285,7 @@ export function AdminPage(props: {
     const ok = await props.onSaveConfig(next);
 
     if (!ok) {
-      setSaveError('保存失败：请确认 Pages Functions 与 KV 已配置');
+      setSaveError(m.admin.saveFailedNeedKv);
       return;
     }
 
@@ -282,7 +323,7 @@ export function AdminPage(props: {
     const next = moveOrUpdateLink(props.config, fromCategory, toCategory, link);
     const ok = await props.onSaveConfig(next);
     if (!ok) {
-      setSaveError('保存失败：请确认 Pages Functions 与 KV 已配置');
+      setSaveError(m.admin.saveFailedNeedKv);
       return;
     }
     setSaveError('');
@@ -295,7 +336,7 @@ export function AdminPage(props: {
     const next = removeLink(props.config, fromCategory, editId);
     const ok = await props.onSaveConfig(next);
     if (!ok) {
-      setSaveError('保存失败：请确认 Pages Functions 与 KV 已配置');
+      setSaveError(m.admin.saveFailedNeedKv);
       return;
     }
     setSaveError('');
@@ -308,7 +349,7 @@ export function AdminPage(props: {
       const parsed = parseImportText(importText);
       const ok = await props.onSaveConfig(parsed);
       if (!ok) {
-        setImportError('导入成功但保存失败：请确认 Pages Functions 与 KV 已配置');
+        setImportError(m.admin.importSavedButFailed);
         return;
       }
       setImportError('');
@@ -325,12 +366,34 @@ export function AdminPage(props: {
     setUser(null);
   };
 
+  const onLogin = async () => {
+    setLoginError('');
+    try {
+      await apiLogin(loginUser, loginPass);
+      const u = await apiGetMe();
+      setUser(u);
+    } catch {
+      setLoginError(m.admin.loginFailed);
+    }
+  };
+
+  const onLoginSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!loginUser.trim() || !loginPass.trim()) return;
+    void onLogin();
+  };
+
   if (!authChecked) {
     return (
       <div className="app-shell">
-        <main className="main" style={{ padding: 24 }}>
-          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{props.title} 管理后台</h1>
-          <p style={{ margin: '8px 0 0', color: 'var(--text-sub)' }}>正在检查登录状态…</p>
+        <main className="main admin-auth">
+          <div className="admin-auth-inner">
+            <div className="admin-auth-header">
+          <h1 className="admin-auth-title">{props.title} {m.app.adminTitleSuffix}</h1>
+          <p className="admin-auth-sub">{m.admin.currentlyCheckingAuth}</p>
+
+            </div>
+          </div>
         </main>
       </div>
     );
@@ -339,48 +402,49 @@ export function AdminPage(props: {
   if (!user) {
     return (
       <div className="app-shell">
-        <main className="main" style={{ padding: 24 }}>
-          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{props.title} 管理后台</h1>
-          <p style={{ margin: '8px 0 18px', color: 'var(--text-sub)' }}>登录后可添加/编辑/导入/导出链接</p>
+        <main className="main admin-auth">
+          <div className="admin-auth-inner">
+            <div className="admin-auth-header">
+              <h1 className="admin-auth-title">{props.title} {m.app.adminTitleSuffix}</h1>
+            </div>
 
-          <div className="modal" style={{ maxWidth: 420, margin: 0, overflow: 'hidden' }}>
-            <div className="modal-body">
-              {saveError ? <div style={{ color: 'var(--primary)', fontSize: 12 }}>{saveError}</div> : null}
-              <div className="form-row">
-                <label>账号</label>
-                <input value={loginUser} onChange={(e) => setLoginUser(e.target.value)} autoComplete="username" />
-              </div>
-              <div className="form-row">
-                <label>密码</label>
-                <input
-                  value={loginPass}
-                  onChange={(e) => setLoginPass(e.target.value)}
-                  type="password"
-                  autoComplete="current-password"
-                />
-              </div>
-              {loginError ? <div style={{ color: 'var(--primary)', fontSize: 12 }}>{loginError}</div> : null}
-              <div className="modal-actions" style={{ padding: 0, borderTop: 'none' }}>
-                <button
-                  className="btn btn-primary"
-                  onClick={async () => {
-                    setLoginError('');
-                    try {
-                      await apiLogin(loginUser, loginPass);
-                      const u = await apiGetMe();
-                      setUser(u);
-                    } catch {
-                      setLoginError('登录失败');
-                    }
-                  }}
-                  disabled={!loginUser.trim() || !loginPass.trim()}
-                >
-                  登录
-                </button>
-                <a className="btn" href="/">
-                  返回首页
-                </a>
-              </div>
+            <div className="modal admin-auth-card">
+              <form className="modal-body" onSubmit={onLoginSubmit}>
+                {saveError ? <div style={{ color: 'var(--primary)', fontSize: 12 }}>{saveError}</div> : null}
+                <div className="form-row">
+                  <label>{m.admin.username}</label>
+                  <input value={loginUser} onChange={(e) => setLoginUser(e.target.value)} autoComplete="username" />
+                </div>
+                <div className="form-row">
+                  <label>{m.admin.password}</label>
+                  <div className="admin-password-row">
+                    <input
+                      value={loginPass}
+                      onChange={(e) => setLoginPass(e.target.value)}
+                      type={showLoginPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      className="admin-password-toggle"
+                      onClick={() => setShowLoginPassword((v) => !v)}
+                      aria-label={showLoginPassword ? m.admin.hidePassword : m.admin.showPassword}
+                      aria-pressed={showLoginPassword}
+                    >
+                      {showLoginPassword ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                </div>
+                {loginError ? <div style={{ color: 'var(--primary)', fontSize: 12 }}>{loginError}</div> : null}
+                <div className="modal-actions" style={{ padding: 0, borderTop: 'none' }}>
+                  <button className="btn btn-primary" type="submit" disabled={!loginUser.trim() || !loginPass.trim()}>
+                    {m.admin.login}
+                  </button>
+                  <a className="btn" href="/">
+                    {m.admin.backHome}
+                  </a>
+                </div>
+              </form>
             </div>
           </div>
         </main>
@@ -393,35 +457,38 @@ export function AdminPage(props: {
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-brand">
-            <div className="sidebar-title">管理后台</div>
+            <div className="sidebar-title">{m.app.adminTitleSuffix}</div>
             <div className="sidebar-subtitle">{user.username}</div>
           </div>
         </div>
         <div className="sidebar-list">
           <button className="sidebar-item" onClick={() => setModal('add')}>
-            <span>添加</span>
+            <span>{m.admin.add}</span>
+          </button>
+          <button className="sidebar-item" onClick={openCategoryModal}>
+            <span>{m.admin.categoriesAndGroups}</span>
           </button>
           <button className="sidebar-item" onClick={() => setModal('import')}>
-            <span>导入</span>
+            <span>{m.admin.import}</span>
           </button>
           <button className="sidebar-item" onClick={() => setModal('export')}>
-            <span>导出</span>
+            <span>{m.admin.export}</span>
           </button>
           <button
             className="sidebar-item"
             onClick={async () => {
               const ok = await props.onResetConfig();
-              if (!ok) setSaveError('重置失败：请确认 Pages Functions 与 KV 已配置');
+              if (!ok) setSaveError(m.admin.resetFailedNeedKv);
               else setSaveError('');
             }}
           >
-            <span>重置</span>
+            <span>{m.admin.reset}</span>
           </button>
           <a className="sidebar-item" href="/">
-            <span>返回首页</span>
+            <span>{m.admin.backHome}</span>
           </a>
           <button className="sidebar-item" onClick={onLogout}>
-            <span>退出登录</span>
+            <span>{m.admin.logout}</span>
           </button>
         </div>
       </aside>
@@ -429,8 +496,21 @@ export function AdminPage(props: {
       <main className="main">
         <header className="banner">
           <div className="banner-row">
-            <h1 className="banner-title">链接管理</h1>
-            <div className="banner-tools" />
+            <h1 className="banner-title">{m.admin.links}</h1>
+            <div className="banner-tools" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <button className="btn btn-primary" onClick={() => setModal('add')}>
+                {m.admin.add}
+              </button>
+              <button className="btn" onClick={openCategoryModal}>
+                {m.admin.categoriesAndGroups}
+              </button>
+              <button className="btn" onClick={() => setModal('import')}>
+                {m.admin.import}
+              </button>
+              <button className="btn" onClick={() => setModal('export')}>
+                {m.admin.export}
+              </button>
+            </div>
           </div>
           {saveError ? <div style={{ marginTop: 10, color: 'var(--primary)', fontSize: 12 }}>{saveError}</div> : null}
         </header>
@@ -439,32 +519,9 @@ export function AdminPage(props: {
           {props.config.categories.map((category) => (
             <div key={category.id} style={{ marginBottom: 18 }}>
               <div className="section-title">
-                 <h2>{category.name}</h2>
-                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                   <span style={{ fontSize: 12, color: 'var(--text-sub)' }}>图标</span>
-                   <select
-                     value={resolveCategoryIcon(category)}
-                     onChange={async (e) => {
-                       const nextIcon = e.target.value;
-                       const next = {
-                         ...props.config,
-                         categories: props.config.categories.map((c) => (c.id === category.id ? { ...c, icon: nextIcon } : c)),
-                       };
+                <h2>{category.name}</h2>
+              </div>
 
-                       const ok = await props.onSaveConfig(next);
-                       if (!ok) setSaveError('保存失败：请确认 Pages Functions 与 KV 已配置');
-                       else setSaveError('');
-                     }}
-                     aria-label={`${category.name} 图标`}
-                   >
-                     {CATEGORY_ICON_OPTIONS.map((opt) => (
-                       <option key={opt.value} value={opt.value}>
-                         {opt.label}
-                       </option>
-                     ))}
-                   </select>
-                 </div>
-               </div>
               <div className="grid">
                 {category.items.map((link) => (
                   <button
@@ -487,21 +544,22 @@ export function AdminPage(props: {
 
       {modal === 'add' ? (
         <Modal
-          title="添加网站"
+          title={m.admin.addSiteTitle}
           onClose={() => setModal('none')}
+          closeLabel={m.admin.close}
           actions={
             <>
               <button className="btn" onClick={() => setModal('none')}>
-                取消
+                {m.admin.cancel}
               </button>
               <button className="btn btn-primary" onClick={onAddSubmit} disabled={!addName.trim() || !addUrl.trim()}>
-                保存
+                {m.admin.save}
               </button>
             </>
           }
         >
           <div className="form-row">
-            <label>分类</label>
+            <label>{m.admin.category}</label>
             <select value={effectiveAddCategoryId} onChange={(e) => setAddCategoryId(e.target.value)}>
               {props.config.categories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -512,22 +570,22 @@ export function AdminPage(props: {
           </div>
 
           <div className="form-row">
-            <label>网站名称</label>
+            <label>{m.admin.siteName}</label>
             <input value={addName} onChange={(e) => setAddName(e.target.value)} />
           </div>
 
           <div className="form-row">
-            <label>网址</label>
+            <label>{m.admin.url}</label>
             <input value={addUrl} onChange={(e) => setAddUrl(e.target.value)} />
           </div>
 
           <div className="form-row">
-            <label>说明（可选）</label>
+            <label>{m.admin.descriptionOptional}</label>
             <input value={addDesc} onChange={(e) => setAddDesc(e.target.value)} />
           </div>
 
           <div className="form-row">
-            <label>标签（可选，逗号分隔）</label>
+            <label>{m.admin.tagsOptional}</label>
             <input value={addTags} onChange={(e) => setAddTags(e.target.value)} />
           </div>
         </Modal>
@@ -535,24 +593,25 @@ export function AdminPage(props: {
 
       {modal === 'edit' ? (
         <Modal
-          title="编辑网站"
+          title={m.admin.editSiteTitle}
           onClose={() => setModal('none')}
+          closeLabel={m.admin.close}
           actions={
             <>
               <button className="btn" onClick={onEditDelete} disabled={!editId}>
-                删除
+                {m.admin.delete}
               </button>
               <button className="btn" onClick={() => setModal('none')}>
-                取消
+                {m.admin.cancel}
               </button>
               <button className="btn btn-primary" onClick={onEditSubmit} disabled={!editName.trim() || !editUrl.trim()}>
-                保存
+                {m.admin.save}
               </button>
             </>
           }
         >
           <div className="form-row">
-            <label>分类</label>
+            <label>{m.admin.category}</label>
             <select value={effectiveEditCategoryId} onChange={(e) => setEditCategoryId(e.target.value)}>
               {props.config.categories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -563,44 +622,282 @@ export function AdminPage(props: {
           </div>
 
           <div className="form-row">
-            <label>网站名称</label>
+            <label>{m.admin.siteName}</label>
             <input value={editName} onChange={(e) => setEditName(e.target.value)} />
           </div>
 
           <div className="form-row">
-            <label>网址</label>
+            <label>{m.admin.url}</label>
             <input value={editUrl} onChange={(e) => setEditUrl(e.target.value)} />
           </div>
 
           <div className="form-row">
-            <label>说明（可选）</label>
+            <label>{m.admin.descriptionOptional}</label>
             <input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
           </div>
 
           <div className="form-row">
-            <label>标签（可选，逗号分隔）</label>
+            <label>{m.admin.tagsOptional}</label>
             <input value={editTags} onChange={(e) => setEditTags(e.target.value)} />
+          </div>
+        </Modal>
+      ) : null}
+
+      {modal === 'categories' ? (
+        <Modal
+          title={m.admin.categoriesGroupsTitle}
+          onClose={() => setModal('none')}
+          closeLabel={m.admin.close}
+          actions={
+            <>
+              <button className="btn" onClick={() => setModal('none')}>
+                {m.admin.cancel}
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  const next = sortCategories({ ...props.config, categories: categoryDraft });
+                  const ok = await props.onSaveConfig(next);
+                  if (!ok) {
+                    setSaveError(m.admin.saveFailedNeedKv);
+                    return;
+                  }
+                  setSaveError('');
+                  setModal('none');
+                }}
+              >
+                {m.admin.save}
+              </button>
+            </>
+          }
+        >
+          <div className="form-row">
+            <label>{m.admin.group}</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {categoryGroups.length === 0 ? <div style={{ color: 'var(--text-sub)', fontSize: 12 }}>{m.admin.noGroups}</div> : null}              {categoryGroups.map((g) => {
+                const draft = groupRenameDrafts[g] ?? '';
+                const normalized = draft.trim();
+                const canApply = normalized.length > 0 && normalized !== g;
+
+                return (
+                  <div key={g} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input
+                      value={g}
+                      readOnly
+                      style={{ width: 140, color: 'var(--text-sub)' }}
+                      aria-label={`${m.admin.group}: ${g}`}
+                    />
+                    <input
+                      value={draft}
+                      placeholder={m.admin.newGroupNamePlaceholder}
+                      onChange={(e) => {
+                        const nextName = e.target.value;
+                        setGroupRenameDrafts((prev) => ({ ...prev, [g]: nextName }));
+                      }}
+                      aria-label={`${m.admin.categoriesGroupsTitle}: ${g}`}
+                    />
+                    <button
+                      className="btn"
+                      onClick={() => {
+                        if (!canApply) return;
+                        setCategoryDraft((prev) =>
+                          prev.map((c) => ((c.group ?? '').trim() === g ? { ...c, group: normalized } : c)),
+                        );
+                        setGroupRenameDrafts((prev) => {
+                          const next = { ...prev };
+                          delete next[g];
+                          return next;
+                        });
+                      }}
+                      disabled={!canApply}
+                    >
+                      {m.admin.apply}
+                    </button>
+                    <button
+                      className="btn"
+                      onClick={() => {
+                        if (!confirm(m.admin.confirmDeleteGroup(g))) return;
+                        setCategoryDraft((prev) => prev.map((c) => ((c.group ?? '').trim() === g ? { ...c, group: undefined } : c)));
+                        setGroupRenameDrafts((prev) => {
+                          const next = { ...prev };
+                          delete next[g];
+                          return next;
+                        });
+                      }}
+                    >
+                      {m.admin.delete}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="form-row">
+            <label>{m.admin.categories}</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {categoryDraft.map((c) => (
+                <div key={c.id} className="modal" style={{ width: '100%', margin: 0 }}>
+                  <div className="modal-body" style={{ padding: 12 }}>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <div style={{ minWidth: 160, fontWeight: 800 }}>{c.id}</div>
+                      <input
+                        value={c.name}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setCategoryDraft((prev) => prev.map((x) => (x.id === c.id ? { ...x, name: v } : x)));
+                        }}
+                        placeholder={m.admin.categoryNamePlaceholder}
+                        aria-label={`${c.id} ${m.admin.categoryNamePlaceholder}`}
+                        style={{ flex: '1 1 200px' }}
+                      />
+                      <input
+                        value={c.group ?? ''}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          const normalized = v.trim();
+                          setCategoryDraft((prev) => prev.map((x) => (x.id === c.id ? { ...x, group: normalized || undefined } : x)));
+                        }}
+                        placeholder={m.admin.groupOptionalPlaceholder}
+                        aria-label={`${c.id} ${m.admin.group}`}
+                        style={{ width: 160 }}
+                      />
+                      <input
+                        value={c.order ?? ''}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          const n = raw.trim() ? Number(raw) : undefined;
+                          setCategoryDraft((prev) => prev.map((x) => (x.id === c.id ? { ...x, order: Number.isFinite(n) ? n : undefined } : x)));
+                        }}
+                        placeholder={m.admin.orderPlaceholder}
+                        inputMode="numeric"
+                        aria-label={`${c.id} ${m.admin.orderPlaceholder}`}
+                        style={{ width: 90 }}
+                      />
+                      <select
+                        value={resolveCategoryIcon(c)}
+                        onChange={(e) => {
+                          const nextIcon = e.target.value;
+                          setCategoryDraft((prev) => prev.map((x) => (x.id === c.id ? { ...x, icon: nextIcon } : x)));
+                        }}
+                        aria-label={`${c.id} ${m.admin.icon}`}
+                        style={{ width: 150 }}
+                      >
+                        {CATEGORY_ICON_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        className="btn"
+                        onClick={() => {
+                          if (c.items.length > 0) {
+                            if (!confirm(m.admin.confirmDeleteCategoryWithLinks(c.name, c.items.length))) return;
+                          }
+                          setCategoryDraft((prev) => prev.filter((x) => x.id !== c.id));
+                        }}
+                      >
+                        {m.admin.deleteCategory}
+                      </button>
+                    </div>
+                      <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-sub)' }}>
+                        {m.admin.linkCount(c.items.length)}
+                      </div>
+
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="form-row">
+            <label>{m.admin.newCategory}</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <input
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder={m.admin.categoryNamePlaceholder}
+                aria-label={m.admin.newCategory}
+                style={{ flex: '1 1 200px' }}
+              />
+              <input
+                value={newCategoryGroup}
+                onChange={(e) => setNewCategoryGroup(e.target.value)}
+                placeholder={m.admin.groupOptionalPlaceholder}
+                aria-label={m.admin.group}
+                style={{ width: 160 }}
+              />
+              <input
+                value={newCategoryOrder}
+                onChange={(e) => setNewCategoryOrder(e.target.value)}
+                placeholder={m.admin.orderPlaceholder}
+                aria-label={m.admin.orderPlaceholder}
+
+                style={{ width: 90 }}
+              />
+              <select value={newCategoryIcon} onChange={(e) => setNewCategoryIcon(e.target.value)} aria-label={m.admin.icon} style={{ width: 150 }}>
+                {CATEGORY_ICON_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  const name = newCategoryName.trim();
+                  if (!name) return;
+
+                  const idBase = slugifyId(name);
+                  const exists = new Set(categoryDraft.map((c) => c.id));
+                  const id = exists.has(idBase) ? `${idBase}-${Date.now().toString(36)}` : idBase;
+
+                  const group = newCategoryGroup.trim() || undefined;
+                  const order = newCategoryOrder.trim() ? Number(newCategoryOrder.trim()) : undefined;
+
+                  const next: NavCategory = {
+                    id,
+                    name,
+                    group,
+                    icon: newCategoryIcon,
+                    order: Number.isFinite(order) ? order : undefined,
+                    items: [],
+                  };
+
+                  setCategoryDraft((prev) => [...prev, next]);
+                  setNewCategoryName('');
+                  setNewCategoryGroup('');
+                  setNewCategoryOrder('');
+                  setNewCategoryIcon('📌');
+                }}
+                disabled={!newCategoryName.trim()}
+              >
+                {m.admin.addCategory}
+              </button>
+            </div>
           </div>
         </Modal>
       ) : null}
 
       {modal === 'export' ? (
         <Modal
-          title="导出配置（JSON）"
+          title={m.admin.exportTitle}
           onClose={() => setModal('none')}
+          closeLabel={m.admin.close}
           actions={
             <>
               <button className="btn" onClick={() => copyToClipboard(exportJson)}>
-                复制
+                {m.admin.copy}
               </button>
               <button className="btn btn-primary" onClick={() => setModal('none')}>
-                关闭
+                {m.admin.close}
               </button>
             </>
           }
         >
           <div className="form-row">
-            <label>复制后可保存到仓库或备份</label>
+            <label>{m.admin.exportHint}</label>
             <textarea value={exportJson} readOnly />
           </div>
         </Modal>
@@ -608,21 +905,22 @@ export function AdminPage(props: {
 
       {modal === 'import' ? (
         <Modal
-          title="导入配置（JSON 或 YAML）"
+          title={m.admin.importTitle}
           onClose={() => setModal('none')}
+          closeLabel={m.admin.close}
           actions={
             <>
               <button className="btn" onClick={() => setModal('none')}>
-                取消
+                {m.admin.cancel}
               </button>
               <button className="btn btn-primary" onClick={onImportApply} disabled={!importText.trim()}>
-                应用
+                {m.admin.apply}
               </button>
             </>
           }
         >
           <div className="form-row">
-            <label>粘贴 JSON/YAML</label>
+            <label>{m.admin.pasteJsonYaml}</label>
             <textarea value={importText} onChange={(e) => setImportText(e.target.value)} />
           </div>
           {importError ? <div style={{ color: 'var(--primary)', fontSize: 12 }}>{importError}</div> : null}

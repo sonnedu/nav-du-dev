@@ -17,6 +17,7 @@ export type NavLink = {
 export type NavCategory = {
   id: string;
   name: string;
+  group?: string;
   icon?: string;
   order?: number;
   items: NavLink[];
@@ -32,6 +33,7 @@ export type NavSite = {
   sidebarAvatarSrc?: string;
   deployedDomain?: string;
   faviconProxyBase?: string;
+  adminPath?: string;
 };
 
 export type NavConfig = {

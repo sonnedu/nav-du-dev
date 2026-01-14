@@ -1,17 +1,19 @@
 site:
-  title: "nav-du"
+  title: "Nav-Du"
   sidebarTitle: "Nav-Du"
   bannerTitle: "我的收藏夹"
   description: ""
-  defaultTheme: "system"
+  defaultTheme: "dark"
   timeZone: "Asia/Shanghai"
   sidebarAvatarSrc: "/avatar/avatar.jpg"
   deployedDomain: ""
   faviconProxyBase: ""
+  adminPath: "/admin"
 
 categories:
   - id: dev
     name: "开发编程"
+    group: "开发"
     order: 1
     items:
       - id: github
@@ -19,6 +21,18 @@ categories:
         url: "https://github.com"
         desc: "代码托管与协作"
         tags: ["code", "git"]
+      - id: gitlab
+        name: "GitLab"
+        url: "https://gitlab.com"
+        desc: "代码托管与 CI"
+      - id: stackblitz
+        name: "StackBlitz"
+        url: "https://stackblitz.com"
+        desc: "在线 IDE"
+      - id: codesandbox
+        name: "CodeSandbox"
+        url: "https://codesandbox.io"
+        desc: "在线沙盒"
       - id: npm
         name: "npm"
         url: "https://www.npmjs.com"
@@ -26,24 +40,59 @@ categories:
 
   - id: ai
     name: "人工智能"
+    group: "开发"
     order: 2
     items:
       - id: chatgpt
         name: "ChatGPT"
         url: "https://chat.openai.com"
         desc: "对话式 AI"
+      - id: claude
+        name: "Claude"
+        url: "https://claude.ai"
+        desc: "对话式 AI"
+      - id: gemini
+        name: "Gemini"
+        url: "https://gemini.google.com"
+        desc: "Google AI"
+      - id: huggingface
+        name: "Hugging Face"
+        url: "https://huggingface.co"
+        desc: "模型与数据集"
+      - id: openai-api
+        name: "OpenAI API"
+        url: "https://platform.openai.com"
+        desc: "API 控制台"
 
   - id: tools
     name: "常用工具"
+    group: "工具"
     order: 3
     items:
       - id: tool-lu
         name: "Tool.lu"
         url: "https://tool.lu"
         desc: "在线工具箱"
+      - id: regex101
+        name: "regex101"
+        url: "https://regex101.com"
+        desc: "正则调试"
+      - id: jsonformatter
+        name: "JSON Formatter"
+        url: "https://jsonformatter.org"
+        desc: "JSON 格式化"
+      - id: carbon
+        name: "Carbon"
+        url: "https://carbon.now.sh"
+        desc: "代码截图"
+      - id: asciiflow
+        name: "asciiflow"
+        url: "https://asciiflow.com"
+        desc: "ASCII 画图"
 
   - id: docs
     name: "技术文档"
+    group: "开发"
     order: 4
     items:
       - id: mdn
@@ -81,6 +130,7 @@ categories:
 
   - id: search
     name: "搜索引擎"
+    group: "工具"
     order: 5
     items:
       - id: google
@@ -114,6 +164,7 @@ categories:
 
   - id: productivity
     name: "效率办公"
+    group: "工具"
     order: 6
     items:
       - id: notion
@@ -151,6 +202,7 @@ categories:
 
   - id: design
     name: "设计资源"
+    group: "内容"
     order: 7
     items:
       - id: figma
@@ -188,6 +240,7 @@ categories:
 
   - id: cloud
     name: "云端服务"
+    group: "服务"
     order: 8
     items:
       - id: cloudflare
@@ -225,6 +278,7 @@ categories:
 
   - id: devops
     name: "运维工具"
+    group: "服务"
     order: 9
     items:
       - id: docker-hub
@@ -258,6 +312,7 @@ categories:
 
   - id: news
     name: "科技资讯"
+    group: "内容"
     order: 10
     items:
       - id: hackernews
@@ -295,6 +350,7 @@ categories:
 
   - id: video
     name: "视频娱乐"
+    group: "内容"
     order: 11
     items:
       - id: youtube
@@ -324,6 +380,7 @@ categories:
 
   - id: shopping
     name: "购物平台"
+    group: "生活"
     order: 12
     items:
       - id: amazon
@@ -357,6 +414,7 @@ categories:
 
   - id: finance
     name: "金融理财"
+    group: "服务"
     order: 13
     items:
       - id: paypal
@@ -390,6 +448,7 @@ categories:
 
   - id: misc
     name: "其他收藏"
+    group: "其他"
     order: 99
     items:
       - id: cloudflare

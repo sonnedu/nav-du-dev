@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { applyDefaultIconOnError, getLinkIconUrl } from '../lib/favicon';
+import { useI18n } from '../lib/useI18n';
+import { createNavFuseIndexes, indexNavLinks, searchNavByPriority } from '../lib/search';
 import type { IndexedNavLink, NavCategory, NavConfig } from '../lib/navTypes';
+import { useScrollProgress, scrollToTop } from '../lib/useScrollProgress';
 
 const DEFAULT_CATEGORY_ICONS: Record<string, string> = {
   dev: '💻',
@@ -23,9 +26,6 @@ const DEFAULT_CATEGORY_ICONS: Record<string, string> = {
 function getCategoryIcon(category: NavCategory): string {
   return category.icon || DEFAULT_CATEGORY_ICONS[category.id] || '📌';
 }
-
-import { createNavFuseIndex, indexNavLinks, searchNav } from '../lib/search';
-import { useScrollProgress, scrollToTop } from '../lib/useScrollProgress';
 
 function IconSearch() {
   return (
@@ -164,25 +164,93 @@ export function NavPage(props: {
   const [sidebarHidden, setSidebarHidden] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState(() => config.categories[0]?.id ?? '');
 
+  const [isMobileLayout, setIsMobileLayout] = useState(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(max-width: 860px)').matches;
+  });
+
   useActiveCategoryObserver(config.categories, (categoryId) => {
     setActiveCategoryId(categoryId);
   });
 
+  const sidebarGroups = useMemo(() => {
+    const byGroup = new Map<string, NavCategory[]>();
+    for (const c of config.categories) {
+      const key = c.group?.trim() || '';
+      const existing = byGroup.get(key);
+      if (existing) existing.push(c);
+      else byGroup.set(key, [c]);
+    }
+
+    return [...byGroup.entries()].map(([group, categories]) => ({ group, categories }));
+  }, [config.categories]);
+
   const [query, setQuery] = useState('');
   const indexedLinks = useMemo(() => indexNavLinks(config), [config]);
-  const fuse = useMemo(() => createNavFuseIndex(indexedLinks), [indexedLinks]);
-  const searchResults = useMemo(() => searchNav(fuse, query), [fuse, query]);
+  const fuses = useMemo(() => createNavFuseIndexes(indexedLinks), [indexedLinks]);
+  const searchResults = useMemo(() => searchNavByPriority(fuses, query), [fuses, query]);
 
-  const content = useMemo(() => {
+  const groupedSearch = useMemo(() => {
     const q = query.trim();
     if (!q) return null;
-    return searchResults.map((r) => r.link);
+
+    const byCategory = new Map<
+      string,
+      {
+        categoryId: string;
+        categoryName: string;
+        bestScore: number;
+        bestPriority: 0 | 1 | 2;
+        links: IndexedNavLink[];
+      }
+    >();
+
+    for (const r of searchResults) {
+      const id = r.link.categoryId;
+      const existing = byCategory.get(id);
+      if (!existing) {
+        byCategory.set(id, {
+          categoryId: id,
+          categoryName: r.link.categoryName,
+          bestScore: r.score,
+          bestPriority: r.priority,
+          links: [r.link],
+        });
+        continue;
+      }
+
+      existing.bestScore = Math.min(existing.bestScore, r.score);
+      existing.bestPriority = Math.min(existing.bestPriority, r.priority) as 0 | 1 | 2;
+      existing.links.push(r.link);
+    }
+
+    const resultByKey = new Map<string, { priority: 0 | 1 | 2; score: number }>();
+    for (const r of searchResults) resultByKey.set(`${r.link.categoryId}:${r.link.id}`, { priority: r.priority, score: r.score });
+
+    const groups = [...byCategory.values()];
+    groups.sort((a, b) => a.bestPriority - b.bestPriority || a.bestScore - b.bestScore);
+
+    for (const g of groups) {
+      g.links.sort((la, lb) => {
+        const ra = resultByKey.get(`${la.categoryId}:${la.id}`);
+        const rb = resultByKey.get(`${lb.categoryId}:${lb.id}`);
+        const pa = ra?.priority ?? 2;
+        const pb = rb?.priority ?? 2;
+        const sa = ra?.score ?? 1;
+        const sb = rb?.score ?? 1;
+        return pa - pb || sa - sb;
+      });
+    }
+
+    return groups;
   }, [query, searchResults]);
 
   const progress = useScrollProgress();
   const ringRadius = 18;
   const ringCircumference = 2 * Math.PI * ringRadius;
   const ringOffset = ringCircumference * (1 - progress);
+
+  const { m, isZh } = useI18n();
 
   const [now, setNow] = useState(() => new Date());
 
@@ -191,14 +259,40 @@ export function NavPage(props: {
     return () => window.clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 860px)');
+
+    const onChange = () => setIsMobileLayout(mq.matches);
+    onChange();
+
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
   const dateText = useMemo(() => {
-    return new Intl.DateTimeFormat('en-CA', {
+    if (isZh) {
+      return new Intl.DateTimeFormat('zh-CN', {
+        timeZone: props.timeZone,
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        weekday: 'long',
+      })
+        .format(now)
+        .replace('星期', '  星期');
+    }
+
+    return new Intl.DateTimeFormat('en-US', {
       timeZone: props.timeZone,
+      weekday: 'short',
       year: 'numeric',
-      month: '2-digit',
+      month: 'short',
       day: '2-digit',
-    }).format(now);
-  }, [now, props.timeZone]);
+    })
+      .format(now)
+      .replace(',', '  ');
+  }, [isZh, now, props.timeZone]);
 
   const timeText = useMemo(() => {
     return new Intl.DateTimeFormat('en-GB', {
@@ -209,6 +303,11 @@ export function NavPage(props: {
       hour12: false,
     }).format(now);
   }, [now, props.timeZone]);
+
+  const sidebarToggleLabel = m.nav.toggleSidebar;
+  const sidebarToggleText = sidebarHidden ? m.nav.showSidebar : m.nav.hideSidebar;
+  const themeToggleText = m.nav.toggleTheme;
+  const backToTopText = m.nav.backToTop;
 
   return (
     <div className={`app-shell app-shell--with-sidebar ${sidebarHidden ? 'app-shell--sidebar-hidden' : ''}`}>
@@ -227,24 +326,63 @@ export function NavPage(props: {
         </div>
 
         <div className="sidebar-list">
-          {config.categories.map((c) => (
-            <button
-              key={c.id}
-              className={`sidebar-item ${c.id === activeCategoryId ? 'is-active' : ''}`}
-              onClick={() => {
-                setActiveCategoryId(c.id);
-                document.getElementById(sectionId(c.id))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                setSidebarOpen(false);
-              }}
-              title={c.name}
-            >
-              <span className="category-icon" aria-hidden="true">{getCategoryIcon(c)}</span>
-              <span>{c.name}</span>
-            </button>
+          {sidebarGroups.map((g) => (
+            <div key={g.group || 'default'} className="sidebar-group">
+              {g.group ? <div className="sidebar-group-title">{g.group}</div> : null}
+              {g.categories.map((c) => (
+                <button
+                  key={c.id}
+                  className={`sidebar-item ${c.id === activeCategoryId ? 'is-active' : ''}`}
+                  onClick={() => {
+                    setActiveCategoryId(c.id);
+                    document.getElementById(sectionId(c.id))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    setSidebarOpen(false);
+                  }}
+                  title={c.name}
+                >
+                  <span className="category-icon" aria-hidden="true">{getCategoryIcon(c)}</span>
+                  <span>{c.name}</span>
+                </button>
+              ))}
+            </div>
           ))}
         </div>
 
-        <div className="sidebar-footer">© 2026 du.dev</div>
+        <div className="sidebar-bottom">
+          <button
+            className="sidebar-hide-btn"
+            onClick={() => {
+              setSidebarHidden((v) => !v);
+              setSidebarOpen(false);
+            }}
+            aria-label={sidebarToggleLabel}
+            title={sidebarToggleText}
+          >
+            <IconPanelLeft />
+            <span>{sidebarToggleText}</span>
+          </button>
+
+          {(() => {
+            const match = __APP_VERSION__.match(/\bv\d+\.\d+\.\d+\b/);
+            const version = match?.[0] ?? __APP_VERSION__;
+            const commit = __APP_COMMIT__ ? __APP_COMMIT__.slice(0, 7) : '';
+            const title = `© ${new Date().getFullYear()} du.dev · ${version}${commit ? ` · ${commit}` : ''}`;
+
+            return (
+              <div className="sidebar-footer" title={title}>
+                © {new Date().getFullYear()}{' '}
+                <a href="https://du.dev" target="_blank" rel="noreferrer">
+                  du.dev
+                </a>
+                {' · '}
+                {version}
+                {commit ? (
+                  <span className="sidebar-footer-commit">{' · '}{commit}</span>
+                ) : null}
+              </div>
+            );
+          })()}
+        </div>
       </aside>
 
 
@@ -253,7 +391,11 @@ export function NavPage(props: {
           <div className="banner-row">
             <div className="banner-left">
               <div className="mobile-topbar">
-                <button className="mobile-menu-btn" onClick={() => setSidebarOpen(true)} aria-label="打开菜单">
+                <button
+                className="mobile-menu-btn"
+                onClick={() => setSidebarOpen(true)}
+                aria-label={m.nav.openMenu}
+              >
                   <IconHamburger />
                 </button>
                 <div>
@@ -261,7 +403,7 @@ export function NavPage(props: {
                 </div>
               </div>
 
-              <h1 className="banner-title">👋 {props.bannerTitle}</h1>
+              {!isMobileLayout ? <h1 className="banner-title">👋 {props.bannerTitle}</h1> : null}
 
               <div className="search">
                 <IconSearch />
@@ -269,14 +411,14 @@ export function NavPage(props: {
                   className="search-input"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="搜索名称 / 网址 / 描述（支持拼音与缩写）"
+                  placeholder={m.nav.searchPlaceholder}
                   inputMode="search"
                 />
               </div>
             </div>
 
             <div className="banner-tools">
-              <div className="banner-time" aria-label="当前时间">
+              <div className="banner-time" aria-label={m.nav.currentTime}>
                 <div className="banner-time-main">{timeText}</div>
                 <div className="banner-time-sub">{dateText}</div>
               </div>
@@ -285,31 +427,33 @@ export function NavPage(props: {
         </header>
 
         <section className="content">
-          {content ? (
-            <>
-              <div className="section-title">
-                <h2>搜索结果</h2>
-              </div>
+          {groupedSearch ? (
+            groupedSearch.map((g) => (
+              <div key={g.categoryId} className="section-block">
+                <div className="section-title">
+                  <h2>{g.categoryName}</h2>
+                </div>
 
-              <div className="grid">
-                {content.map((link: IndexedNavLink) => (
-                  <a key={`${link.categoryId}:${link.id}`} className="card" href={link.url} target="_blank" rel="noreferrer">
-                    <div className="card-icon">
-                      <img
-                        src={getLinkIconUrl(link, props.faviconProxyBase)}
-                        alt=""
-                        loading="lazy"
-                        onError={(e) => applyDefaultIconOnError(e.currentTarget)}
-                      />
-                    </div>
-                    <div className="card-body">
-                      <p className="card-title">{link.name}</p>
-                      <p className="card-desc">{link.desc ?? link.url}</p>
-                    </div>
-                  </a>
-                ))}
+                <div className="grid">
+                  {g.links.map((link) => (
+                    <a key={`${link.categoryId}:${link.id}`} className="card" href={link.url} target="_blank" rel="noreferrer">
+                      <div className="card-icon">
+                        <img
+                          src={getLinkIconUrl(link, props.faviconProxyBase)}
+                          alt=""
+                          loading="lazy"
+                          onError={(e) => applyDefaultIconOnError(e.currentTarget)}
+                        />
+                      </div>
+                      <div className="card-body">
+                        <p className="card-title">{link.name}</p>
+                        <p className="card-desc">{link.desc ?? link.url}</p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
               </div>
-            </>
+            ))
           ) : (
             config.categories.map((category) => (
               <div key={category.id} id={sectionId(category.id)} className="section-block" style={{ scrollMarginTop: 12 }}>
@@ -350,18 +494,23 @@ export function NavPage(props: {
 
         <div className="fab">
           <button
-            className="fab-btn"
+            className={`fab-btn fab-btn-sidebar-toggle ${sidebarHidden ? 'is-active' : ''}`}
             onClick={() => {
               setSidebarHidden((v) => !v);
               setSidebarOpen(false);
             }}
-            aria-label="切换侧栏"
-            title={sidebarHidden ? '显示侧栏' : '隐藏侧栏'}
+            aria-label={sidebarToggleLabel}
+            data-tooltip={sidebarToggleText}
           >
             <IconPanelLeft />
           </button>
 
-          <button className="fab-btn" onClick={props.onToggleTheme} aria-label="切换主题">
+          <button
+            className="fab-btn fab-btn-theme-toggle"
+            onClick={props.onToggleTheme}
+            aria-label={themeToggleText}
+            data-tooltip={themeToggleText}
+          >
             {props.resolvedTheme === 'dark' ? <IconSun /> : <IconMoon />}
           </button>
 
@@ -389,7 +538,12 @@ export function NavPage(props: {
               />
             </svg>
 
-            <button className="fab-btn" onClick={scrollToTop} aria-label="返回顶部" title="返回顶部">
+            <button
+              className="fab-btn"
+              onClick={scrollToTop}
+              aria-label={backToTopText}
+              data-tooltip={backToTopText}
+            >
               <IconArrowUp />
             </button>
           </div>

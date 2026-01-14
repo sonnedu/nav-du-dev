@@ -27,6 +27,7 @@ function isNavLink(value: unknown): value is NavLink {
 function isNavCategory(value: unknown): value is NavCategory {
   if (!isRecord(value)) return false;
   if (!isString(value.id) || !isString(value.name)) return false;
+  if ('group' in value && value.group !== undefined && !isString(value.group)) return false;
   if ('icon' in value && value.icon !== undefined && !isString(value.icon)) return false;
   if ('order' in value && value.order !== undefined && typeof value.order !== 'number') return false;
   if (!Array.isArray(value.items) || !value.items.every(isNavLink)) return false;
@@ -45,6 +46,7 @@ export function isNavConfig(value: unknown): value is NavConfig {
   if ('sidebarAvatarSrc' in value.site && value.site.sidebarAvatarSrc !== undefined && !isString(value.site.sidebarAvatarSrc)) return false;
   if ('deployedDomain' in value.site && value.site.deployedDomain !== undefined && !isString(value.site.deployedDomain)) return false;
   if ('faviconProxyBase' in value.site && value.site.faviconProxyBase !== undefined && !isString(value.site.faviconProxyBase)) return false;
+  if ('adminPath' in value.site && value.site.adminPath !== undefined && !isString(value.site.adminPath)) return false;
 
   if (!Array.isArray(value.categories) || !value.categories.every(isNavCategory)) return false;
 

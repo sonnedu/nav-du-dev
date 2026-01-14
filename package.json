@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:all": "node scripts/dev-all.cjs",
     "build": "tsc -b && vite build",
+
     "lint": "eslint .",
     "preview": "vite preview",
     "test:e2e": "playwright test",

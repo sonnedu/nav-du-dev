@@ -49,9 +49,42 @@ export async function verifySessionToken(secret: string, token: string): Promise
   return payload;
 }
 
+function isTruthyEnv(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  const v = value.trim().toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes' || v === 'on';
+}
+
+function isLocalhostRequest(request: Request): boolean {
+  try {
+    const url = new URL(request.url);
+    const host = url.hostname.toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  } catch {
+    return false;
+  }
+}
+
+function resolveDevSessionSecret(env: Record<string, unknown>): string {
+  const configured = env.DEV_SESSION_SECRET;
+  if (typeof configured === 'string' && configured.trim()) return configured.trim();
+  return 'dev-only-session-secret-nav-du-2026';
+}
+
+function resolveSessionSecret(request: Request, env: Record<string, unknown>): string | null {
+  const configured = env.SESSION_SECRET;
+  if (typeof configured === 'string' && configured.trim()) return configured.trim();
+
+  const allowDevDefault = isTruthyEnv(env.ALLOW_DEV_DEFAULT_ADMIN);
+  if (!allowDevDefault) return null;
+  if (!isLocalhostRequest(request)) return null;
+
+  return resolveDevSessionSecret(env);
+}
+
 export async function requireAdmin(request: Request, env: Record<string, unknown>): Promise<{ username: string } | Response> {
-  const secret = env.SESSION_SECRET;
-  if (typeof secret !== 'string' || !secret) {
+  const secret = resolveSessionSecret(request, env);
+  if (!secret) {
     return jsonResponse({ error: 'SESSION_SECRET not configured' }, 500);
   }
 

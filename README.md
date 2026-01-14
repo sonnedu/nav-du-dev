@@ -1,70 +1,149 @@
-# nav-du
+# Nav-Du
 
-nav导航页（我的收藏夹）
+一个轻量、响应式的个人导航页（收藏夹 Dashboard），支持搜索（拼音/拼音缩写/模糊匹配）、主题切换、favicon 代理，以及一个简单的管理后台用于维护链接与分类。
 
-A lightweight, responsive personal navigation page (bookmarks dashboard).
+- 默认语言：中文（简体）
+- English docs: `README.en.md`
 
-- Demo / Reference site: https://nav.du.dev
+## 功能特性
 
-## Features
+- 左侧分类菜单 + 右侧卡片网格
+- 搜索：名称/网址/描述 + 拼音/拼音缩写 + 模糊匹配（按优先级：名称 > 描述 > URL）
+- 主题：浅色/深色/跟随系统
+- 返回顶部（带滚动进度环）
+- favicon 代理（同域 `/ico` 推荐，适合中国大陆网络环境）
+- 管理后台：添加/编辑/删除链接，管理分类与分组，导入/导出配置
 
-- Category sidebar + card grid
-- Search (name/url/desc) with pinyin + initials + fuzzy match
-- Light/Dark/System theme toggle
-- Scroll-to-top with progress ring
-- Admin page (`/admin`) for managing links (Cloudflare Pages Functions)
-- Favicon proxy Worker with caching
-
-## Local development
+## 快速开始（本地）
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open: `http://127.0.0.1:5173`
+打开：`http://127.0.0.1:5173`
 
-## Local verification
+说明：`npm run dev` 只启动 Vite，不会运行 Cloudflare Pages Functions（`/api/*`）。
 
-### UI (manual)
+## 一键启动本地全栈（推荐）
 
-- Desktop: verify fixed sidebar + scroll behavior
-- Mobile/Pad: use responsive device mode (drawer menu, tap targets)
+同时启动：Vite + Pages Functions + favicon Worker（用于本地验证后台与 `/ico`）。
 
-### API (`/api/*`)
-
-Vite dev server does not run Cloudflare Pages Functions.
-
-- Terminal A: `npm run dev`
-- Terminal B: `npx wrangler pages dev --proxy 5173`
-
-Use the Wrangler URL output to access `/admin`.
-
-### E2E (Playwright)
-
-Install browsers once:
+说明：`dev:all` 会为 Pages dev 绑定一个本地 KV（`--kv NAV_CONFIG_KV`，并使用 `.wrangler/state` 持久化），以便行为更接近生产。
 
 ```bash
-npx playwright install
+npm run dev:all
 ```
 
-Run tests:
+默认端口：
+- 页面（Vite）：`http://127.0.0.1:5173`
+- Pages（API/后台）：`http://127.0.0.1:8799`
+- favicon Worker：`http://127.0.0.1:8787`（接口：`/ico?url=...`）
+
+可通过环境变量修改端口：`NAV_VITE_PORT` / `NAV_PAGES_PORT` / `NAV_FAVICON_PORT`。
+
+## 生产一致本地模拟（dist）
+
+如果你只想看生产环境的请求形态（没有 `src/*.ts` 请求），直接用构建产物启动 Pages：
 
 ```bash
-npm run test:e2e
-npm run test:e2e:chromium
+npm run build
+npx wrangler pages dev dist --kv NAV_CONFIG_KV --persist-to .wrangler/state
 ```
 
-## Configuration
+## 后台登录（本地开发默认账号）
 
-- Default config: `src/data/nav.yaml`
-- Sidebar title / banner title / timezone can be set in config or overridden by env:
-  - `VITE_SIDEBAR_TITLE`
-  - `VITE_BANNER_TITLE`
-  - `VITE_TIME_ZONE`
-  - `VITE_SIDEBAR_AVATAR_SRC`
+默认情况下，后台必须配置线上管理员账号/密码（见下文）。为了方便本地开发，支持显式开启默认账号。
 
-## Docs
+启用条件：
+- 必须通过 Wrangler binding 注入：`-b ALLOW_DEV_DEFAULT_ADMIN=1`
+- 必须在 localhost（`127.0.0.1` / `localhost` / `::1`）访问
 
-- 中文说明：`README.zh-CN.md`
-- Design notes: `DESIGN.md`
+默认账号密码：`dev / dev2026`
+
+可选覆盖：
+- `DEV_ADMIN_USERNAME`
+- `DEV_ADMIN_PASSWORD`
+- `DEV_SESSION_SECRET`
+
+## 配置说明
+
+默认配置文件：`src/data/nav.yaml`
+
+### 站点配置（`site`）
+
+- `site.title`：站点标题（浏览器标题等）
+- `site.sidebarTitle`：侧栏标题
+- `site.bannerTitle`：右侧 Banner 标题
+- `site.description`：站点描述（可选）
+- `site.defaultTheme`：`light | dark | system`
+- `site.timeZone`：时区字符串，默认 `Asia/Shanghai`
+- `site.sidebarAvatarSrc`：侧栏头像地址（例如 `/avatar/avatar.jpg`）
+- `site.faviconProxyBase`：favicon 代理基地址
+  - 推荐同域：`/ico`
+  - 也支持绝对地址：`https://your-domain.com/ico`
+- `site.adminPath`：后台入口路径（默认 `/admin`）
+
+### 环境变量覆盖（前端，`VITE_*`）
+
+以下会覆盖 `site.*`（适合部署时配置）：
+- `VITE_SIDEBAR_TITLE`
+- `VITE_BANNER_TITLE`
+- `VITE_TIME_ZONE`
+- `VITE_SIDEBAR_AVATAR_SRC`
+- `VITE_FAVICON_PROXY_BASE`（推荐：`/ico` 或 `https://.../ico`）
+- `VITE_ADMIN_PATH`（默认 `/admin`）
+
+### 后台环境变量（Pages Functions）
+
+必须配置（线上）：
+- `ADMIN_USERNAME`
+- `ADMIN_PASSWORD_SHA256`：管理员密码的 SHA-256 hex（小写）
+- `SESSION_SECRET`：会话签名密钥（随机长字符串）
+
+可选：
+- `SESSION_TTL_SECONDS`：会话有效期（秒），默认 86400
+- `NAV_CONFIG_KV`：用于存储云端配置（管理后台保存/重置依赖）
+
+登录防暴力（可选，默认启用；依赖 `NAV_CONFIG_KV` 才能做计数）：
+- `LOGIN_RATE_LIMIT_WINDOW_SECONDS`（默认 60）
+- `LOGIN_RATE_LIMIT_MAX_FAILS`（默认 8）
+- `LOGIN_RATE_LIMIT_LOCK_SECONDS`（默认 300）
+
+生成 `ADMIN_PASSWORD_SHA256`（macOS / Linux）：
+
+```bash
+printf '%s' 'your-password' | shasum -a 256 | awk '{print $1}'
+```
+
+## 国际化（i18n）
+
+- 默认：中文（简体）
+- 支持：`zh-CN` / `en`
+- 切换方式：
+  - URL 参数：`?lang=en` 或 `?lang=zh-CN`
+  - 或写入 localStorage：`nav-du/locale = 'en' | 'zh-CN'`
+
+说明：当前仅对 UI 文案做国际化；`src/data/nav.yaml` 中的分类名/描述仍属于数据内容。
+
+## 部署（Cloudflare）
+
+推荐架构：
+- Cloudflare Pages：部署前端静态站点 + Pages Functions（`functions/api/*`）
+- Cloudflare Worker：部署 favicon 代理（`workers/favicon`），并通过同域路由 `/ico` 提供服务
+
+### 1) 部署 Pages（主站）
+
+构建输出：`dist/`（`npm run build`）。
+
+### 2) 部署 favicon Worker 并绑定 `/ico`
+
+- 部署 `workers/favicon`
+- 为 Worker 添加路由：`nav.du.dev/ico*`
+- 配置前端使用同域 `/ico`：
+  - 推荐：Pages 环境变量 `VITE_FAVICON_PROXY_BASE=/ico`
+  - 或配置 `site.faviconProxyBase: "/ico"`
+
+### 3) 验证
+
+打开站点后，DevTools Network 中 favicon 请求应为：`https://nav.du.dev/ico?url=...`（而不是 `google.com/s2/...`）。

@@ -1,12 +1,22 @@
 import { expect, test } from '@playwright/test'
 
-test.describe('nav-du', () => {
+test.describe('Nav-Du', () => {
   test('home loads and has basic UI', async ({ page }) => {
     await page.goto('/')
 
     await expect(page.locator('.search-input')).toBeVisible()
     await expect(page.locator('.sidebar')).toBeVisible()
     await expect(page.locator('.grid').first()).toBeVisible()
+  })
+
+  test('search results are grouped by category', async ({ page }) => {
+    await page.goto('/')
+
+    await page.locator('.search-input').fill('GitHub')
+
+    const sections = page.locator('.section-block')
+    await expect(sections.first()).toBeVisible()
+    await expect(page.locator('.grid .card').first()).toBeVisible()
   })
 
   test('desktop sidebar stays fixed while page scrolls', async ({ page }) => {
@@ -30,10 +40,12 @@ test.describe('nav-du', () => {
     const appShell = page.locator('.app-shell')
     await expect(appShell).not.toHaveClass(/app-shell--sidebar-hidden/)
 
-    await page.getByRole('button', { name: '切换侧栏' }).click()
+    const fabToggle = page.locator('.fab-btn-sidebar-toggle')
+
+    await fabToggle.click()
     await expect(appShell).toHaveClass(/app-shell--sidebar-hidden/)
 
-    await page.getByRole('button', { name: '切换侧栏' }).click()
+    await fabToggle.click()
     await expect(appShell).not.toHaveClass(/app-shell--sidebar-hidden/)
   })
 
@@ -43,7 +55,7 @@ test.describe('nav-du', () => {
     const html = page.locator('html')
     const before = await html.getAttribute('data-theme')
 
-    await page.getByRole('button', { name: '切换主题' }).click()
+    await page.locator('.fab-btn-theme-toggle').click()
 
     await expect
       .poll(async () => html.getAttribute('data-theme'))
@@ -56,7 +68,7 @@ test.describe('nav-du', () => {
 
     const sidebar = page.locator('.sidebar')
 
-    await page.getByRole('button', { name: '打开菜单' }).click()
+    await page.locator('.mobile-menu-btn').click()
     await expect(sidebar).toHaveClass(/is-open/)
 
     const overlay = page.locator('.sidebar-overlay')
