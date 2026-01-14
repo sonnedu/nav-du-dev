@@ -1,7 +1,12 @@
 .app-shell {
   min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   background: var(--bg);
+}
+
+.app-shell--with-sidebar {
+  padding-left: 240px;
 }
 
 .sidebar {
@@ -10,10 +15,15 @@
   padding: 18px;
   border-right: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface) 86%, transparent);
-  position: sticky;
+  position: fixed;
+  left: 0;
   top: 0;
   height: 100vh;
+  height: 100svh;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  z-index: 25;
 }
 
 .sidebar-header {
@@ -58,8 +68,17 @@
   text-align: left;
 }
 
+.sidebar-item:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  outline-offset: 2px;
+}
+
 .sidebar-item:hover {
   background: var(--primary-soft);
+}
+
+.sidebar-item:active {
+  transform: translateY(1px);
 }
 
 .sidebar-item.is-active {
@@ -116,6 +135,11 @@
 
 .icon-btn:hover {
   border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+}
+
+.icon-btn:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  outline-offset: 2px;
 }
 
 .search {
@@ -195,6 +219,15 @@
   background: var(--surface-hover);
 }
 
+.card:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  outline-offset: 3px;
+}
+
+.card:active {
+  transform: translateY(0);
+}
+
 .card-icon {
   width: 38px;
   height: 38px;
@@ -241,8 +274,8 @@
 
 .fab {
   position: fixed;
-  right: 18px;
-  bottom: 18px;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -265,6 +298,11 @@
 
 .fab-btn:hover {
   border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+}
+
+.fab-btn:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  outline-offset: 3px;
 }
 
 .fab-btn svg {
@@ -338,6 +376,13 @@
   outline: none;
 }
 
+.form-row input:focus,
+.form-row select:focus,
+.form-row textarea:focus {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 25%, transparent);
+}
+
 .form-row textarea {
   min-height: 160px;
   resize: vertical;
@@ -358,6 +403,11 @@
   color: var(--text);
   padding: 10px 12px;
   cursor: pointer;
+}
+
+.btn:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  outline-offset: 2px;
 }
 
 .btn-primary {
@@ -388,11 +438,30 @@
   place-items: center;
 }
 
+.mobile-menu-btn:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  outline-offset: 2px;
+}
+
 .sidebar-overlay {
   display: none;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .sidebar,
+  .fab-btn,
+  .btn,
+  .icon-btn {
+    transition: none;
+  }
+}
+
 @media (max-width: 860px) {
+  .app-shell--with-sidebar {
+    padding-left: 0;
+  }
+
   .sidebar {
     position: fixed;
     left: 0;

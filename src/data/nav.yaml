@@ -36,6 +36,352 @@ categories:
         url: "https://tool.lu"
         desc: "在线工具箱"
 
+  - id: docs
+    name: "文档"
+    order: 4
+    items:
+      - id: mdn
+        name: "MDN Web Docs"
+        url: "https://developer.mozilla.org"
+        desc: "Web 标准与 API 文档"
+      - id: caniuse
+        name: "Can I use"
+        url: "https://caniuse.com"
+        desc: "浏览器特性兼容性"
+      - id: stackoverflow
+        name: "Stack Overflow"
+        url: "https://stackoverflow.com"
+        desc: "开发者问答"
+      - id: devdocs
+        name: "DevDocs"
+        url: "https://devdocs.io"
+        desc: "离线友好的多语言文档"
+      - id: typescript-handbook
+        name: "TypeScript Handbook"
+        url: "https://www.typescriptlang.org/docs/"
+        desc: "TS 官方文档"
+      - id: react-docs
+        name: "React Docs"
+        url: "https://react.dev"
+        desc: "React 官方文档"
+      - id: vite-docs
+        name: "Vite Docs"
+        url: "https://vite.dev"
+        desc: "Vite 官方文档"
+      - id: cloudflare-docs
+        name: "Cloudflare Docs"
+        url: "https://developers.cloudflare.com"
+        desc: "Pages/Workers 文档"
+
+  - id: search
+    name: "搜索"
+    order: 5
+    items:
+      - id: google
+        name: "Google"
+        url: "https://www.google.com"
+        desc: "综合搜索"
+      - id: bing
+        name: "Bing"
+        url: "https://www.bing.com"
+        desc: "综合搜索"
+      - id: duckduckgo
+        name: "DuckDuckGo"
+        url: "https://duckduckgo.com"
+        desc: "隐私友好搜索"
+      - id: baidu
+        name: "百度"
+        url: "https://www.baidu.com"
+        desc: "中文搜索"
+      - id: github-search
+        name: "GitHub Search"
+        url: "https://github.com/search"
+        desc: "代码/仓库搜索"
+      - id: wikipedia
+        name: "Wikipedia"
+        url: "https://www.wikipedia.org"
+        desc: "百科"
+      - id: wolframalpha
+        name: "Wolfram|Alpha"
+        url: "https://www.wolframalpha.com"
+        desc: "计算与知识引擎"
+
+  - id: productivity
+    name: "效率"
+    order: 6
+    items:
+      - id: notion
+        name: "Notion"
+        url: "https://www.notion.so"
+        desc: "笔记与知识库"
+      - id: todoist
+        name: "Todoist"
+        url: "https://todoist.com"
+        desc: "任务管理"
+      - id: trello
+        name: "Trello"
+        url: "https://trello.com"
+        desc: "看板协作"
+      - id: google-calendar
+        name: "Google Calendar"
+        url: "https://calendar.google.com"
+        desc: "日程管理"
+      - id: google-drive
+        name: "Google Drive"
+        url: "https://drive.google.com"
+        desc: "云盘"
+      - id: dropbox
+        name: "Dropbox"
+        url: "https://www.dropbox.com"
+        desc: "文件同步"
+      - id: slack
+        name: "Slack"
+        url: "https://slack.com"
+        desc: "团队沟通"
+      - id: zoom
+        name: "Zoom"
+        url: "https://zoom.us"
+        desc: "视频会议"
+
+  - id: design
+    name: "设计"
+    order: 7
+    items:
+      - id: figma
+        name: "Figma"
+        url: "https://www.figma.com"
+        desc: "UI/原型设计"
+      - id: dribbble
+        name: "Dribbble"
+        url: "https://dribbble.com"
+        desc: "设计灵感"
+      - id: behance
+        name: "Behance"
+        url: "https://www.behance.net"
+        desc: "作品集与灵感"
+      - id: coolors
+        name: "Coolors"
+        url: "https://coolors.co"
+        desc: "配色生成"
+      - id: iconfont
+        name: "Iconfont"
+        url: "https://www.iconfont.cn"
+        desc: "图标库"
+      - id: fontawesome
+        name: "Font Awesome"
+        url: "https://fontawesome.com"
+        desc: "图标库"
+      - id: undraw
+        name: "unDraw"
+        url: "https://undraw.co/illustrations"
+        desc: "插画素材"
+      - id: heroicons
+        name: "Heroicons"
+        url: "https://heroicons.com"
+        desc: "SVG 图标"
+
+  - id: cloud
+    name: "云服务"
+    order: 8
+    items:
+      - id: cloudflare
+        name: "Cloudflare Dashboard"
+        url: "https://dash.cloudflare.com"
+        desc: "DNS / Pages / Workers 管理"
+      - id: aws
+        name: "AWS Console"
+        url: "https://console.aws.amazon.com"
+        desc: "Amazon Web Services"
+      - id: gcp
+        name: "Google Cloud"
+        url: "https://console.cloud.google.com"
+        desc: "Google Cloud Platform"
+      - id: azure
+        name: "Microsoft Azure"
+        url: "https://portal.azure.com"
+        desc: "Azure Portal"
+      - id: vercel
+        name: "Vercel"
+        url: "https://vercel.com"
+        desc: "前端部署"
+      - id: netlify
+        name: "Netlify"
+        url: "https://www.netlify.com"
+        desc: "前端部署"
+      - id: supabase
+        name: "Supabase"
+        url: "https://supabase.com"
+        desc: "开源 BaaS"
+      - id: render
+        name: "Render"
+        url: "https://render.com"
+        desc: "应用托管"
+
+  - id: devops
+    name: "DevOps"
+    order: 9
+    items:
+      - id: docker-hub
+        name: "Docker Hub"
+        url: "https://hub.docker.com"
+        desc: "镜像仓库"
+      - id: kubernetes-docs
+        name: "Kubernetes Docs"
+        url: "https://kubernetes.io/docs/"
+        desc: "K8s 文档"
+      - id: github-actions
+        name: "GitHub Actions"
+        url: "https://github.com/features/actions"
+        desc: "CI/CD"
+      - id: postman
+        name: "Postman"
+        url: "https://www.postman.com"
+        desc: "API 调试"
+      - id: sentry
+        name: "Sentry"
+        url: "https://sentry.io"
+        desc: "错误监控"
+      - id: grafana
+        name: "Grafana"
+        url: "https://grafana.com"
+        desc: "可观测性"
+      - id: datadog
+        name: "Datadog"
+        url: "https://www.datadoghq.com"
+        desc: "监控与日志"
+
+  - id: news
+    name: "资讯"
+    order: 10
+    items:
+      - id: hackernews
+        name: "Hacker News"
+        url: "https://news.ycombinator.com"
+        desc: "科技资讯"
+      - id: reddit
+        name: "Reddit"
+        url: "https://www.reddit.com"
+        desc: "社区讨论"
+      - id: v2ex
+        name: "V2EX"
+        url: "https://www.v2ex.com"
+        desc: "中文技术社区"
+      - id: juejin
+        name: "掘金"
+        url: "https://juejin.cn"
+        desc: "开发者内容"
+      - id: sspai
+        name: "少数派"
+        url: "https://sspai.com"
+        desc: "效率与产品"
+      - id: medium
+        name: "Medium"
+        url: "https://medium.com"
+        desc: "文章与专栏"
+      - id: theverge
+        name: "The Verge"
+        url: "https://www.theverge.com"
+        desc: "科技媒体"
+      - id: kr36
+        name: "36氪"
+        url: "https://36kr.com"
+        desc: "创业与科技"
+
+  - id: video
+    name: "视频"
+    order: 11
+    items:
+      - id: youtube
+        name: "YouTube"
+        url: "https://www.youtube.com"
+        desc: "视频平台"
+      - id: bilibili
+        name: "哔哩哔哩"
+        url: "https://www.bilibili.com"
+        desc: "视频平台"
+      - id: netflix
+        name: "Netflix"
+        url: "https://www.netflix.com"
+        desc: "流媒体"
+      - id: twitch
+        name: "Twitch"
+        url: "https://www.twitch.tv"
+        desc: "直播平台"
+      - id: vimeo
+        name: "Vimeo"
+        url: "https://vimeo.com"
+        desc: "视频平台"
+      - id: coursera
+        name: "Coursera"
+        url: "https://www.coursera.org"
+        desc: "在线课程"
+
+  - id: shopping
+    name: "购物"
+    order: 12
+    items:
+      - id: amazon
+        name: "Amazon"
+        url: "https://www.amazon.com"
+        desc: "电商"
+      - id: taobao
+        name: "淘宝"
+        url: "https://www.taobao.com"
+        desc: "电商"
+      - id: jd
+        name: "京东"
+        url: "https://www.jd.com"
+        desc: "电商"
+      - id: aliexpress
+        name: "AliExpress"
+        url: "https://www.aliexpress.com"
+        desc: "跨境电商"
+      - id: ebay
+        name: "eBay"
+        url: "https://www.ebay.com"
+        desc: "电商"
+      - id: ikea
+        name: "IKEA"
+        url: "https://www.ikea.com"
+        desc: "家居"
+      - id: costco
+        name: "Costco"
+        url: "https://www.costco.com"
+        desc: "会员制商超"
+
+  - id: finance
+    name: "金融"
+    order: 13
+    items:
+      - id: paypal
+        name: "PayPal"
+        url: "https://www.paypal.com"
+        desc: "支付"
+      - id: wise
+        name: "Wise"
+        url: "https://wise.com"
+        desc: "国际汇款"
+      - id: xe
+        name: "XE"
+        url: "https://www.xe.com"
+        desc: "汇率查询"
+      - id: yahoo-finance
+        name: "Yahoo Finance"
+        url: "https://finance.yahoo.com"
+        desc: "财经信息"
+      - id: tradingview
+        name: "TradingView"
+        url: "https://www.tradingview.com"
+        desc: "行情与图表"
+      - id: coinmarketcap
+        name: "CoinMarketCap"
+        url: "https://coinmarketcap.com"
+        desc: "加密资产行情"
+      - id: stripe
+        name: "Stripe"
+        url: "https://stripe.com"
+        desc: "支付与收款"
+
   - id: misc
     name: "其他"
     order: 99

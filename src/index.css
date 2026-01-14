@@ -7,6 +7,16 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  overflow-x: clip;
+}
+
+@supports not (overflow: clip) {
+  html {
+    overflow-x: hidden;
+  }
+}
+
 html[data-theme='light'] {
   --bg: #f0f2f5;
   --surface: #ffffff;

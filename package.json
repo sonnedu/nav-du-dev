@@ -8,6 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:chromium": "playwright test --project=chromium-desktop",
     "worker:favicon:typecheck": "tsc -p workers/favicon/tsconfig.json --noEmit",
     "worker:favicon:dev": "wrangler dev --config workers/favicon/wrangler.toml",
     "worker:favicon:deploy": "wrangler deploy --config workers/favicon/wrangler.toml"
@@ -22,6 +25,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260114.0",
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.57.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",

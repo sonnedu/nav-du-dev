@@ -1,207 +1,155 @@
-# nav.du.dev 导航页设计方案（草案）
+# nav.du.dev 设计与实现说明
 
-> 目标：在 `nav.du.dev` 部署一个“我常用网站”的导航页，风格参考 `https://ddgksf2013.top`，支持便捷添加/管理链接、强检索（含拼音/拼音缩写）、深浅色主题与 favicon 防盗链方案；部署基于 Cloudflare Pages + Workers。
+> 目标：在 `nav.du.dev` 部署一个“常用网站导航页”，支持强检索（含拼音/拼音缩写）、深浅色主题、favicon 防盗链/跨域兜底，并提供简单的管理后台用于维护链接。
 
-## 1. 技术选型（面向“简单可维护”）
+## 1. 当前实现概览
 
-### 前端
-- 推荐：**Vite + React + TypeScript**（理由：生态成熟、组件化好维护、Cloudflare Pages 纯静态部署非常顺畅）
-- 复杂度担忧：你“不太懂 React/Vite”没关系，这套可以做到“很薄的一层”，项目结构固定后，日常只需要维护 `data` 配置即可。
+### 1.1 技术栈
 
-### 数据维护（优先简单）
-- 选择：**仅本地编辑 + 导入导出**（无需账号/后端，最省心）
-- 数据来源：
-  1) 仓库内的 `data/nav.yaml`（默认数据，方便版本管理）
-  2) 前端提供“添加/编辑/分类管理/导入导出”弹窗（参考 ddgksf2013），编辑结果存 `localStorage`，并支持导出为 JSON/YAML（方便你复制回仓库配置）
+- 前端：Vite + React + TypeScript
+- 部署：Cloudflare Pages（静态资源）
+- 后端（管理接口）：Cloudflare Pages Functions（`functions/api/*`）
+- favicon 代理：Cloudflare Worker（`workers/favicon`，Wrangler 部署）
 
-### 搜索（满足中文/拼音/缩写 + 模糊匹配）
-- 推荐组合：**`pinyin-pro` + `Fuse.js`**
-- 适用规模：链接总量 ≤ 200 —— **不需要预构建索引文件**。
-  - 建议做法：页面首次加载时对数据做一次“预计算索引字段”，并缓存到内存即可（不在每次键入时重复算拼音）。
+### 1.2 目录结构（关键路径）
 
-### favicon（主方案推荐）
-你提的 favicon 痛点是：直接引用站点 favicon 容易遇到防盗链/跨域/偶发失败。
+- UI：`src/`
+  - 导航页：`src/pages/NavPage.tsx`
+  - 管理后台：`src/pages/AdminPage.tsx`
+  - 全局样式：`src/index.css`、`src/App.css`
+  - 默认数据：`src/data/nav.yaml`
+- Pages Functions API：`functions/api/`
+  - 登录：`functions/api/login.ts`
+  - 登出：`functions/api/logout.ts`
+  - 获取当前用户：`functions/api/me.ts`
+  - 读取/写入云端配置：`functions/api/config.ts`
+- favicon Worker：`workers/favicon/src/index.ts`
 
-- 主方案推荐：**独立 Worker 服务 `favicon.du.dev`（proxy + 缓存）**
-  - 前端统一用：`https://favicon.du.dev/ico?url=ENCODED_URL`
-  - Worker 负责抓取 favicon 并缓存，前端不直接碰目标站点的图标。
-- 备用方案（可选）：配置中允许写 `icon.base64` 覆盖某些站点（少量手工兜底）。
+## 2. 需求与交互
 
-原因：
-- 你已经计划用 Workers/Pages；Worker 方案稳定、可控、可刷新、可缓存，且对前端数据体积友好。
+### 2.1 核心功能
 
----
+- 单层分类 + 卡片网格展示
+- 搜索：名称/链接/描述 + 拼音/拼音缩写 + 模糊匹配
+- 主题：浅色/深色/跟随系统，可一键切换
+- 右下角按钮组：主题切换 + 返回顶部（带滚动进度环）
+- 管理后台（`/admin`）：登录后支持添加/编辑/导入/导出/重置
 
-## 2. 信息架构与交互（对齐 ddgksf2013）
+### 2.2 多端与跨浏览器（新增要求）
 
-### 页面布局
-- 左侧：Sidebar（分类列表、当前分类高亮、移动端可抽屉/遮罩）
-- 右侧：主内容
-  - 顶部 Banner：站点标题 + 搜索框 +（可选）公告/提示
-  - 内容区：当前分类下的卡片网格（响应式）
-- 右下角：FAB 按钮组（放一块，符合你要求）
-  - 主题切换（深/浅/跟随系统）
-  - 返回顶部（带滚动进度环）
-  - （可选）移动端菜单按钮
+目标支持：
+- 设备：电脑端 / Pad 端 / 手机端
+- 浏览器：Edge / Chrome / Safari / Firefox（主流现代版本）
 
-### 卡片
-- icon（36~40）+ name + desc（可选 tags）
-- hover：轻微上浮 + 阴影增强（ddgksf2013 风格）
+实现策略（CSS/布局层面）：
+- 响应式断点：`max-width: 860px` 时启用移动端侧栏抽屉（drawer）
+- 桌面端侧栏固定：左侧菜单固定在视口内，右侧内容区域滚动；左侧菜单自身可滚动
+- iOS Safari 兼容：避免仅使用 `100vh` 造成地址栏变化带来的跳动，关键容器使用 `100svh` 并保留 `100vh` 作为降级
+- 可访问性：为键盘操作提供清晰的 `:focus-visible` 样式；减少动画偏好时禁用过渡（`prefers-reduced-motion`）
 
----
+## 3. 页面布局
 
-## 3. 数据模型（单层分类）
+### 3.1 桌面端（电脑）
 
-### YAML 示例（建议）
-```yaml
-site:
-  title: "nav.du.dev"
-  description: "常用网站导航"
-  defaultTheme: "system" # light | dark | system
+- 左侧：分类菜单（固定定位）
+  - 分类列表过长时，左侧内部滚动
+- 右侧：主内容（随页面滚动）
+  - 顶部 Banner：标题 + 搜索框
+  - 内容区：分类分组 + 卡片网格
 
-categories:
-  - id: dev
-    name: "开发"
-    order: 1
-    items:
-      - id: github
-        name: "GitHub"
-        url: "https://github.com"
-        desc: "代码托管与协作"
-        tags: ["code", "git"]
-        icon:
-          type: "proxy" # proxy | base64 | url
-          value: ""     # proxy 时可留空
+### 3.2 Pad/手机端
 
-  - id: tools
-    name: "工具"
-    order: 2
-    items:
-      - id: tool-lu
-        name: "tool.lu"
-        url: "https://tool.lu"
-        desc: "在线工具箱"
-```
+- 侧栏以抽屉形式出现
+  - 点击菜单按钮打开
+  - 点击遮罩关闭
+- 主内容占满宽度
+- 交互上优先保证可点击区域与滚动体验
 
-### 运行时扩展字段（不要求写进 YAML）
-前端加载后给每条 Link 补充 `search` 字段，用于检索加速：
-- `urlHost`
-- `pinyinFull`（name 拼音，无声调）
-- `pinyinInitials`（name 拼音首字母缩写）
-- `searchable`（综合字段）
+## 4. 数据模型与配置
 
----
+### 4.1 默认配置
 
-## 4. 检索设计（中文 + 拼音 + 缩写 + 模糊）
+默认配置文件：`src/data/nav.yaml`
 
-### 字段覆盖
-必须支持：按 `网站名称 / 链接 / 网站说明` 检索。
-并且支持上述字段的：
-- 拼音（全拼）
-- 拼音缩写（首字母）
+结构要点：
+- `site.title`：站点标题
+- `site.description`：站点描述（可选）
+- `site.defaultTheme`：`light | dark | system`
+- `categories[]`：分类列表
+  - `id`/`name`/`order`
+  - `items[]`：链接列表（`id`/`name`/`url`/`desc?`/`tags?`）
 
-### 实现策略（≤200 条，够快且简单）
-1) 页面加载后，遍历所有链接，预生成：
-   - `pinyinFull = pinyin(name, { toneType: 'none', separator: ' ' })`
-   - `pinyinInitials = pinyin(name, { toneType: 'none', pattern: 'first', separator: '' })`
-   - `urlHost = new URL(url).host`（对非法 url 要 try/catch）
-   - `searchable = (name + desc + url + urlHost + pinyinFull + pinyinInitials).toLowerCase()`
-2) 用 Fuse.js 建索引（权重建议）：
-   - `name` 权重最高
-   - `desc` 次之
-   - `url/urlHost` 再次
-   - `pinyinFull/pinyinInitials` 也纳入（权重略低）
-3) 输入框实时检索（建议 debounce 150~300ms），返回 Top N（比如 50）。
+### 4.2 管理后台与覆盖策略
 
-### 额外增强（可选）
-- 对英文输入：优先匹配拼音字段（体验更“像导航站”）
-- 支持空格拆词：例如 `git doc` 同时命中多个词
+- 页面启动会加载 `src/data/nav.yaml`
+- 管理后台可通过 `/api/config` 将配置写入 KV（云端配置）
+- 前端在运行时可能有本地覆盖（如 localStorage 机制）；当存在覆盖数据时可覆盖默认配置
 
----
+> 说明：具体读取优先级以 `src/lib/useNavConfig.ts` / `src/lib/storage.ts` 的实现为准。
 
-## 5. favicon Worker 设计（favicon.du.dev）
+### 4.3 测试用样例数据（新增要求）
 
-### 目标
-- 解决源站防盗链/跨域导致 favicon 不显示的问题
-- 支持缓存、刷新、定期更新
+为了方便验证多端布局与滚动体验，`src/data/nav.yaml` 可以临时放入更多分类与链接（例如 10 个常用分类，每类 5~20 条）。
+后续可通过管理后台自行调整链接内容。
 
-### API 设计（最小可用）
-- `GET /ico?url=...`：返回该站点 favicon（二进制）
-- `POST /refresh?domain=...`：清理该域名缓存，便于手动刷新
-- `GET /health`：健康检查
+## 5. 后端（Cloudflare Pages Functions）
 
-### 获取策略（fallback chain）
-1) 尝试常见路径：`/favicon.ico`、`/favicon.png`
-2) 抓首页 HTML，解析：
-   - `<link rel~="icon">`
-   - `<link rel~="apple-touch-icon">`
-   - manifest（可选后续）
-3) 都失败则返回 404
+### 5.1 路由
 
-### 缓存策略（推荐）
-- Cache API：`caches.default` 缓存最终响应（边缘缓存，快）
-- KV：存“域名 -> 解析出来的 faviconUrl 元信息”，TTL 24h
--（可选）R2：存最终图标二进制，适合长期/大量站点
+- `POST /api/login`：登录，成功后写入 HttpOnly Cookie
+- `POST /api/logout`：登出，清理 Cookie
+- `GET /api/me`：获取当前登录用户
+- `GET /api/config`：从 KV 读取当前配置
+- `PUT /api/config`：写入配置到 KV（需登录）
 
-### 安全与稳定性（必须）
-- SSRF 防护：拒绝 localhost、内网 IP、metadata 域名；只允许 http(s)
-- 限制大小：例如 >500KB 拒绝
-- 校验 content-type：只允许图片类（ico/png/svg/webp）
-- refresh 接口加简单鉴权（API key）
+### 5.2 环境变量（Cloudflare Pages Secrets）
 
----
+- `ADMIN_USERNAME`：管理员账号
+- `ADMIN_PASSWORD_SHA256`：管理员密码的 SHA-256 hex（小写）
+- `SESSION_SECRET`：会话签名密钥（随机长字符串）
+- `SESSION_TTL_SECONDS`（可选）：会话有效期，默认 86400
 
-## 6. 主题（深色/浅色/跟随系统）
+KV：
+- `NAV_CONFIG_KV`：存储云端配置
 
-### 功能要求
-1) 提供深色、浅色主题
-2) 有按钮可以切换
-3) 可根据系统深浅色自动识别
-4) 参考 ddgksf2013：主题切换按钮与返回顶部按钮放在同一组
+## 6. favicon Worker（Cloudflare Workers）
 
-### 实现建议
-- CSS Variables + `data-theme="light|dark"`（或 class）
-- 默认 `system`：读取 `prefers-color-scheme`
-- 用户切换后写入 `localStorage` 覆盖系统
+- 入口：`workers/favicon/src/index.ts`
+- 目标：解决源站 favicon 防盗链/跨域/偶发失败
+- 缓存：Cache API +（可选）KV 元信息缓存
+- 安全：包含 hostname/protocol 校验（SSRF 防护）、超时与大小限制
 
----
+## 7. 验收与校验清单（新增）
 
-## 7. Cloudflare 部署（Pages + Workers）
+### 7.1 手动验证（推荐先做）
 
-### Pages（nav.du.dev）
-- 静态构建输出 `dist/`
-- Cloudflare Pages 直接连接 GitHub repo 自动部署
-- 绑定自定义域名：`nav.du.dev`
+设备维度：
+- 电脑：1920×1080 / 1440×900
+- Pad：1024×1366（或类似）
+- 手机：375×812、390×844
 
-### Workers（favicon.du.dev）
-- 单独 Worker 服务
-- 绑定 KV（必须）和可选 R2
-- 绑定自定义域名：`favicon.du.dev`
+浏览器维度：
+- Chrome / Edge / Firefox / Safari（尽量使用最新稳定版）
 
----
+关键用例：
+- 桌面端：滚动右侧内容时，左侧菜单保持固定；左侧菜单过长时自身可滚动
+- 移动端：抽屉菜单可打开/关闭，遮罩点击关闭，滚动不穿透
+- 搜索：输入/清空后内容切换正确；键盘回车不触发异常跳转
+- 主题：系统模式与手动切换正常；刷新后主题保持预期
+- 可访问性：Tab 键可聚焦到按钮/链接，焦点样式可见
 
-## 8. 迭代路线（从简单到强）
+### 7.2 自动化（可选）
 
-### V1（先上线能用）
-- YAML 配置加载 + 分类展示
-- 搜索（Fuse + pinyin-pro）
-- 主题切换 + 回到顶部（同组 FAB）
-- favicon 先用 Worker proxy（不做 R2，仅 Cache API + KV）
+当前仓库未配置测试框架/Playwright。
+如果后续要做端到端自动化，建议引入 Playwright：
+- 覆盖多个 viewport（desktop/tablet/mobile）
+- 覆盖多个浏览器（Chromium/Firefox/WebKit）
+- 输出截图用于回归
 
-### V2（体验增强）
-- 添加/编辑/导入导出弹窗（本地存储）
-- favicon 刷新接口 + cron 定期刷新
+## 8. 迭代建议
 
-### V3（如果需要“真后台”）
-- Pages Functions/Worker + KV：存云端配置（多设备同步）
-- 简单鉴权（Cloudflare Access / token）
-
----
-
-## 9. 当前决策（根据你的回答）
-- 前端：React/Vite（我来把结构搭好，你后续主要改配置）
-- 规模：≤200，无需预构建索引文件；加载后预计算一次即可
-- 管理：仅本地编辑 + 导入导出（最简单）
-- 分类：单层分类，交互参考 ddgksf2013
-- favicon：推荐 Worker proxy + 缓存（主方案）
-- UI：贴近 ddgksf2013
+- 将“兼容性/多端验证”写入发布前检查清单
+- 若站点链接规模持续增长，可考虑：
+  - 搜索结果分组/高亮
+  - 分类侧栏支持折叠/置顶
+  - 更明确的空状态与错误提示
