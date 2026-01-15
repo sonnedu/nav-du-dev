@@ -2,6 +2,8 @@
 
 Nav-Du 是一个基于 Vite + React + Cloudflare 生态构建的轻量、高效个人导航页系统。它不仅拥有丝滑的交互体验，还具备强大的可视化管理后台和私有化图标代理服务。
 
+**🚀 在线演示：[https://demo.nav.du.dev](https://demo.nav.du.dev)**
+
 ## ✨ 功能特性
 
 - 🚀 **极速体验**：基于 React 19 和 Vite，首屏加载极快，交互流畅。

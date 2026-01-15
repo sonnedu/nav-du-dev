@@ -2,6 +2,8 @@
 
 Nav-Du is a lightweight, high-performance personal navigation dashboard built on the Vite + React + Cloudflare ecosystem. It offers a smooth user experience, a powerful management backend, and a private favicon proxy service.
 
+**🚀 Live Demo: [https://demo.nav.du.dev](https://demo.nav.du.dev)**
+
 ## ✨ Features
 
 - 🚀 **Blazing Fast**: Built with React 19 and Vite for instant loading and fluid interactions.
