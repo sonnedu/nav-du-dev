@@ -9,7 +9,7 @@
 - 前端：Vite + React + TypeScript
 - 部署：Cloudflare Pages（静态资源）
 - 后端（管理接口）：Cloudflare Pages Functions（`functions/api/*`）
-- favicon 代理：Cloudflare Worker（`workers/favicon`，Wrangler 部署）
+- favicon 代理：Cloudflare Worker（`workers/favicon`，Wrangler 部署）。推荐采用同域部署模式（如 `yourdomain.com/ico*`），通过 Pages 的 `_redirects` 配置排除该路径，实现高效的私有图标服务。
 
 ### 1.2 目录结构（关键路径）
 
