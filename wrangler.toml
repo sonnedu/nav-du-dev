@@ -2,9 +2,6 @@ name = "demo-nav-du"
 compatibility_date = "2026-01-14"
 pages_build_output_dir = "dist"
 
-[vars]
-VITE_FAVICON_PROXY_BASE = "/ico"
-
 [[kv_namespaces]]
 binding = "NAV_CONFIG_KV"
 id = "82d6756624844cf8b640e7586c78cfee"
