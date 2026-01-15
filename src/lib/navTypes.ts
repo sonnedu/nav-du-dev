@@ -34,6 +34,10 @@ export type NavSite = {
   deployedDomain?: string;
   faviconProxyBase?: string;
   adminPath?: string;
+
+  // Optional ordering hint for admin-managed category groups.
+  // Does not affect the public schema if omitted.
+  groupOrder?: string[];
 };
 
 export type NavConfig = {

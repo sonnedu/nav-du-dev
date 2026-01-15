@@ -1,4 +1,4 @@
-import { load as loadYaml } from 'js-yaml';
+import { dump as dumpYaml, load as loadYaml } from 'js-yaml';
 
 import type { NavConfig } from './navTypes';
 
@@ -15,4 +15,11 @@ export function sortCategories(config: NavConfig): NavConfig {
     ...config,
     categories: [...config.categories].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
   };
+}
+
+export function dumpNavConfigToYaml(config: NavConfig): string {
+  return dumpYaml(config, {
+    lineWidth: -1,
+    noRefs: true,
+  });
 }

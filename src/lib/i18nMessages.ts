@@ -26,12 +26,15 @@ export type Messages = {
 
     links: string;
     add: string;
+    edit: string;
     addSiteTitle: string;
     editSiteTitle: string;
     categoriesAndGroups: string;
     import: string;
     export: string;
+    importExport: string;
     reset: string;
+    resetConfirm: string;
 
     cancel: string;
     save: string;
@@ -39,9 +42,11 @@ export type Messages = {
     copy: string;
     apply: string;
     delete: string;
+    actions: string;
 
     icon: string;
     category: string;
+    name: string;
     siteName: string;
     url: string;
     descriptionOptional: string;
@@ -50,6 +55,7 @@ export type Messages = {
     categoriesGroupsTitle: string;
     group: string;
     noGroups: string;
+    hideEmptyGroups: string;
     newGroupNamePlaceholder: string;
     categories: string;
     categoryNamePlaceholder: string;
@@ -57,6 +63,7 @@ export type Messages = {
     orderPlaceholder: string;
     deleteCategory: string;
     linkCount: (n: number) => string;
+    newGroup: string;
     newCategory: string;
     addCategory: string;
 
@@ -69,8 +76,30 @@ export type Messages = {
     resetFailedNeedKv: string;
     importSavedButFailed: string;
 
+    searchLinks: string;
+    bulkActions: string;
+    selectedLinksCount: (n: number) => string;
+    moveToCategory: string;
+    bulkDelete: string;
+    confirmBulkDelete: (n: number) => string;
+    reorderGroups: string;
+    importFile: string;
+    exportYaml: string;
+    exportJson: string;
+    dragToReorder: string;
+    dragToReorderHelper: string;
+    reload: string;
+    conflictMessage: string;
+    saveSuccess: string;
+    saving: string;
+    unsavedChanges: string;
+    confirmLeaveUnsaved: string;
+    confirm: string;
+    ok: string;
+
     confirmDeleteGroup: (g: string) => string;
     confirmDeleteCategoryWithLinks: (name: string, count: number) => string;
+    groupRequired: string;
   };
 };
 
@@ -102,12 +131,15 @@ export const zhCN: Messages = {
 
     links: '链接管理',
     add: '添加',
+    edit: '编辑',
     addSiteTitle: '添加网站',
     editSiteTitle: '编辑网站',
-    categoriesAndGroups: '分类/分组',
+    categoriesAndGroups: '分类分组',
     import: '导入',
     export: '导出',
-    reset: '重置',
+    importExport: '导入导出',
+    reset: '恢复默认配置',
+    resetConfirm: '确定要恢复默认配置吗？这将恢复为仓库默认配置（nav.yaml），并覆盖当前的自定义设置。',
 
     cancel: '取消',
     save: '保存',
@@ -115,9 +147,11 @@ export const zhCN: Messages = {
     copy: '复制',
     apply: '应用',
     delete: '删除',
+    actions: '操作',
 
     icon: '图标',
     category: '分类',
+    name: '分类名称',
     siteName: '网站名称',
     url: '网址',
     descriptionOptional: '说明（可选）',
@@ -126,6 +160,7 @@ export const zhCN: Messages = {
     categoriesGroupsTitle: '分类/分组管理',
     group: '分组',
     noGroups: '暂无分组',
+    hideEmptyGroups: '隐藏空分组',
     newGroupNamePlaceholder: '新分组名',
     categories: '分类',
     categoryNamePlaceholder: '分类名称',
@@ -133,6 +168,7 @@ export const zhCN: Messages = {
     orderPlaceholder: '排序',
     deleteCategory: '删除分类',
     linkCount: (n) => `当前链接数：${n}`,
+    newGroup: '新增分组',
     newCategory: '新增分类',
     addCategory: '添加分类',
 
@@ -145,9 +181,31 @@ export const zhCN: Messages = {
     resetFailedNeedKv: '重置失败：请确认 Pages Functions 与 KV 已配置',
     importSavedButFailed: '导入成功但保存失败：请确认 Pages Functions 与 KV 已配置',
 
+    searchLinks: '搜索链接…',
+    bulkActions: '批量操作',
+    selectedLinksCount: (n) => `已选择 ${n} 个链接`,
+    moveToCategory: '移动到分类',
+    bulkDelete: '批量删除',
+    confirmBulkDelete: (n) => `确定删除选中的 ${n} 个链接吗？`,
+    reorderGroups: '调整分组排序',
+    importFile: '从文件导入',
+    exportYaml: '导出为 YAML',
+    exportJson: '导出为 JSON',
+    dragToReorder: '拖拽排序',
+    dragToReorderHelper: '使用空格键抓取，使用方向键移动',
+    reload: '重新加载',
+    conflictMessage: '保存失败：配置已被他人修改。请重新加载后重试。',
+    saveSuccess: '保存成功',
+    saving: '保存中…',
+    unsavedChanges: '未保存',
+    confirmLeaveUnsaved: '当前有未保存的修改，确定要离开吗？',
+    confirm: '确定',
+    ok: '知道了',
+
     confirmDeleteGroup: (g) => `确定删除分组「${g}」？该分组下分类将变为未分组。`,
     confirmDeleteCategoryWithLinks: (name, count) =>
       `分类「${name}」下仍有 ${count} 个链接，确定删除该分类并丢弃这些链接吗？`,
+    groupRequired: '分组不能为空，请先选择分组。',
   },
 };
 
@@ -179,12 +237,15 @@ export const en: Messages = {
 
     links: 'Links',
     add: 'Add',
+    edit: 'Edit',
     addSiteTitle: 'Add site',
     editSiteTitle: 'Edit site',
-    categoriesAndGroups: 'Categories / Groups',
+    categoriesAndGroups: 'Categories & Groups',
     import: 'Import',
     export: 'Export',
-    reset: 'Reset',
+    importExport: 'Import/Export',
+    reset: 'Restore Default Settings',
+    resetConfirm: 'Are you sure you want to restore defaults from nav.yaml? This will overwrite your current configuration.',
 
     cancel: 'Cancel',
     save: 'Save',
@@ -192,9 +253,11 @@ export const en: Messages = {
     copy: 'Copy',
     apply: 'Apply',
     delete: 'Delete',
+    actions: 'Actions',
 
     icon: 'Icon',
     category: 'Category',
+    name: 'Category name',
     siteName: 'Site name',
     url: 'URL',
     descriptionOptional: 'Description (optional)',
@@ -203,6 +266,7 @@ export const en: Messages = {
     categoriesGroupsTitle: 'Categories / Groups',
     group: 'Group',
     noGroups: 'No groups',
+    hideEmptyGroups: 'Hide empty groups',
     newGroupNamePlaceholder: 'New group name',
     categories: 'Categories',
     categoryNamePlaceholder: 'Category name',
@@ -210,6 +274,7 @@ export const en: Messages = {
     orderPlaceholder: 'Order',
     deleteCategory: 'Delete category',
     linkCount: (n) => `Links: ${n}`,
+    newGroup: 'New group',
     newCategory: 'New category',
     addCategory: 'Add category',
 
@@ -222,8 +287,30 @@ export const en: Messages = {
     resetFailedNeedKv: 'Reset failed: please configure Pages Functions and KV',
     importSavedButFailed: 'Imported but failed to save: please configure Pages Functions and KV',
 
+    searchLinks: 'Search links...',
+    bulkActions: 'Bulk Actions',
+    selectedLinksCount: (n) => `${n} links selected`,
+    moveToCategory: 'Move to Category',
+    bulkDelete: 'Bulk Delete',
+    confirmBulkDelete: (n) => `Are you sure you want to delete ${n} selected links?`,
+    reorderGroups: 'Reorder Groups',
+    importFile: 'Import from File',
+    exportYaml: 'Export as YAML',
+    exportJson: 'Export as JSON',
+    dragToReorder: 'Drag to reorder',
+    dragToReorderHelper: 'Press spacebar to grab, arrow keys to move',
+    reload: 'Reload',
+    conflictMessage: 'Save failed due to conflict. Please reload and try again.',
+    saveSuccess: 'Save successful',
+    saving: 'Saving…',
+    unsavedChanges: 'Unsaved',
+    confirmLeaveUnsaved: 'You have unsaved changes. Leave anyway?',
+    confirm: 'Confirm',
+    ok: 'OK',
+
     confirmDeleteGroup: (g) => `Delete group "${g}"? Categories under it will become ungrouped.`,
     confirmDeleteCategoryWithLinks: (name, count) =>
       `Category "${name}" still has ${count} links. Delete it and discard those links?`,
+    groupRequired: 'Group is required. Please select a group first.',
   },
 };

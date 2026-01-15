@@ -47,6 +47,7 @@ export function isNavConfig(value: unknown): value is NavConfig {
   if ('deployedDomain' in value.site && value.site.deployedDomain !== undefined && !isString(value.site.deployedDomain)) return false;
   if ('faviconProxyBase' in value.site && value.site.faviconProxyBase !== undefined && !isString(value.site.faviconProxyBase)) return false;
   if ('adminPath' in value.site && value.site.adminPath !== undefined && !isString(value.site.adminPath)) return false;
+  if ('groupOrder' in value.site && value.site.groupOrder !== undefined && !isStringArray(value.site.groupOrder)) return false;
 
   if (!Array.isArray(value.categories) || !value.categories.every(isNavCategory)) return false;
 

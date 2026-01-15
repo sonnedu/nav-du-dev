@@ -56,9 +56,9 @@ export default function App() {
   const faviconProxyBase = (coerceEnvString(import.meta.env.VITE_FAVICON_PROXY_BASE) || config.site.faviconProxyBase || '').trim();
 
   const onSaveConfig = async (next: NavConfig) => {
-    const ok = await saveConfigRemote(next);
-    await reloadRemote();
-    return ok;
+    const result = await saveConfigRemote(next);
+    if (result.ok) await reloadRemote();
+    return result;
   };
 
   const onResetConfig = async () => {
@@ -75,6 +75,7 @@ export default function App() {
           title={title}
           onSaveConfig={onSaveConfig}
           onResetConfig={onResetConfig}
+          onReload={reloadRemote}
         />
       </Suspense>
     );

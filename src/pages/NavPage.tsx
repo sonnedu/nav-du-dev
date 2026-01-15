@@ -6,26 +6,7 @@ import { createNavFuseIndexes, indexNavLinks, searchNavByPriority } from '../lib
 import type { IndexedNavLink, NavCategory, NavConfig } from '../lib/navTypes';
 import { useScrollProgress, scrollToTop } from '../lib/useScrollProgress';
 
-const DEFAULT_CATEGORY_ICONS: Record<string, string> = {
-  dev: '💻',
-  ai: '🤖',
-  tools: '🧰',
-  docs: '📚',
-  search: '🔎',
-  productivity: '✅',
-  design: '🎨',
-  cloud: '☁️',
-  devops: '⚙️',
-  news: '📰',
-  video: '🎬',
-  shopping: '🛒',
-  finance: '💰',
-  misc: '📌',
-};
-
-function getCategoryIcon(category: NavCategory): string {
-  return category.icon || DEFAULT_CATEGORY_ICONS[category.id] || '📌';
-}
+import { getCategoryIcon } from '../lib/navIcons';
 
 function IconSearch() {
   return (
@@ -164,26 +145,86 @@ export function NavPage(props: {
   const [sidebarHidden, setSidebarHidden] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState(() => config.categories[0]?.id ?? '');
 
+  const orderedCategories = useMemo(() => {
+    const order = config.site.groupOrder ?? [];
+    const groupIndex = new Map<string, number>();
+    for (let i = 0; i < order.length; i += 1) groupIndex.set(order[i], i);
+
+    const groupKeyOf = (c: NavCategory): string => (c.group?.trim() ? c.group.trim() : '');
+
+    return [...config.categories].sort((a, b) => {
+      const ga = groupKeyOf(a);
+      const gb = groupKeyOf(b);
+
+      if (ga !== gb) {
+        if (!ga && gb) return -1;
+        if (ga && !gb) return 1;
+
+        const ia = ga ? groupIndex.get(ga) : undefined;
+        const ib = gb ? groupIndex.get(gb) : undefined;
+
+        const ha = ia !== undefined;
+        const hb = ib !== undefined;
+        if (ha && hb) return ia - ib;
+        if (ha) return -1;
+        if (hb) return 1;
+
+        return ga.localeCompare(gb);
+      }
+
+      const oa = a.order ?? 0;
+      const ob = b.order ?? 0;
+      if (oa !== ob) return oa - ob;
+
+      return a.name.localeCompare(b.name);
+    });
+  }, [config.categories, config.site.groupOrder]);
+
   const [isMobileLayout, setIsMobileLayout] = useState(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
     return window.matchMedia('(max-width: 860px)').matches;
   });
 
-  useActiveCategoryObserver(config.categories, (categoryId) => {
+  useActiveCategoryObserver(orderedCategories, (categoryId) => {
     setActiveCategoryId(categoryId);
   });
 
+  const effectiveActiveCategoryId = useMemo(() => {
+    if (orderedCategories.length === 0) return activeCategoryId;
+    const exists = orderedCategories.some((c) => c.id === activeCategoryId);
+    return exists ? activeCategoryId : orderedCategories[0].id;
+  }, [activeCategoryId, orderedCategories]);
+
   const sidebarGroups = useMemo(() => {
     const byGroup = new Map<string, NavCategory[]>();
-    for (const c of config.categories) {
+    for (const c of orderedCategories) {
       const key = c.group?.trim() || '';
       const existing = byGroup.get(key);
       if (existing) existing.push(c);
       else byGroup.set(key, [c]);
     }
 
-    return [...byGroup.entries()].map(([group, categories]) => ({ group, categories }));
-  }, [config.categories]);
+    const order = config.site.groupOrder ?? [];
+
+    const entries = [...byGroup.entries()].map(([group, categories]) => ({ group, categories }));
+    entries.sort((a, b) => {
+      if (!a.group && b.group) return -1;
+      if (a.group && !b.group) return 1;
+
+      const ia = a.group ? order.indexOf(a.group) : -1;
+      const ib = b.group ? order.indexOf(b.group) : -1;
+
+      const inA = ia >= 0;
+      const inB = ib >= 0;
+      if (inA && inB) return ia - ib;
+      if (inA) return -1;
+      if (inB) return 1;
+
+      return a.group.localeCompare(b.group);
+    });
+
+    return entries;
+  }, [orderedCategories, config.site.groupOrder]);
 
   const [query, setQuery] = useState('');
   const indexedLinks = useMemo(() => indexNavLinks(config), [config]);
@@ -332,7 +373,7 @@ export function NavPage(props: {
               {g.categories.map((c) => (
                 <button
                   key={c.id}
-                  className={`sidebar-item ${c.id === activeCategoryId ? 'is-active' : ''}`}
+                  className={`sidebar-item ${c.id === effectiveActiveCategoryId ? 'is-active' : ''}`}
                   onClick={() => {
                     setActiveCategoryId(c.id);
                     document.getElementById(sectionId(c.id))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -455,7 +496,7 @@ export function NavPage(props: {
               </div>
             ))
           ) : (
-            config.categories.map((category) => (
+            orderedCategories.map((category) => (
               <div key={category.id} id={sectionId(category.id)} className="section-block" style={{ scrollMarginTop: 12 }}>
                 <div className="section-title">
                   <h2>

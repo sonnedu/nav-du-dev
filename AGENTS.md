@@ -1,166 +1,131 @@
 # Agent Guide (nav-du-dev)
 
-This file is for agentic coding assistants operating in this repository.
+For agentic coding assistants operating in this repository.
 
 ## Repo overview
 
-- Frontend: Vite + React + TypeScript
-- Static hosting + backend: Cloudflare Pages + Pages Functions in `functions/`
-- Favicon proxy: Cloudflare Worker in `workers/favicon/` (Wrangler)
+- **Frontend**: Vite + React + TypeScript
+- **Backend/API**: Cloudflare Pages Functions under `functions/` (routes like `/api/*`)
+- **Favicon proxy**: Cloudflare Worker under `workers/favicon/` (Wrangler)
+- **Data Source**: YAML-based configuration (`src/data/nav.yaml`) with runtime overrides via KV.
 
-Key paths:
-- UI: `src/`
+### Key paths
+- UI Source: `src/`
+- Data Config: `src/data/nav.yaml` (Schema in `src/lib/navTypes.ts`)
+- E2E tests: `e2e/` (Playwright)
 - Pages Functions (API): `functions/api/`
-- Worker: `workers/favicon/src/index.ts`
+- Worker entry: `workers/favicon/src/index.ts`
 
-## Commands (build / lint / typecheck / dev)
+### Config files
+- ESLint: `eslint.config.js`
+- Playwright: `playwright.config.ts`
+- TypeScript: `tsconfig.app.json` (Strict), `tsconfig.node.json`
+- Pages (local): `wrangler.toml` (Build output: `dist/`)
+- Worker (favicon): `workers/favicon/wrangler.toml`
 
-Package manager:
-- Uses npm (`package-lock.json` is present)
+## Commands
 
-Install:
-- `npm install`
-- CI-style install: `npm ci`
+**Package Manager**: `npm` (use `package-lock.json`)
 
-Frontend dev:
-- `npm run dev` (Vite dev server)
-- `npm run preview` (preview built `dist/`)
+### Development
+- **Frontend Only**: `npm run dev`
+  - Starts Vite server only.
+  - API calls to `/api/*` will 404.
+- **Full Stack (Recommended)**: `npm run dev:all`
+  - Builds frontend, starts Pages dev (API/KV) + Favicon Worker + Vite proxy.
+  - Essential for testing Admin/API features.
+  - Ports: Vite(5173), Pages(8799), Worker(8787).
 
-Build:
-- `npm run build`
-  - Runs `tsc -b` (project references) and `vite build`
+### Build & Verification
+- **Build**: `npm run build`
+  - Runs `tsc -b` and `vite build`. Outputs to `dist/`.
+- **Lint**: `npm run lint`
+  - Uses ESLint (Flat Config).
+- **Typecheck**:
+  - App: `npx tsc -p tsconfig.app.json --noEmit`
+  - Worker: `npm run worker:favicon:typecheck`
 
-Lint:
-- `npm run lint` (runs ESLint on the repository)
+### E2E Tests (Playwright)
+**Note**: This project relies on E2E tests. There are **NO** unit tests (Jest/Vitest).
 
-Typecheck (no dedicated top-level script):
-- App typecheck (manual): `npx tsc -p tsconfig.app.json --noEmit`
-- Tooling typecheck (manual): `npx tsc -p tsconfig.node.json --noEmit`
+- **Install Browsers**: `npx playwright install`
+- **Run All**: `npm run test:e2e`
+- **Run Chromium**: `npm run test:e2e:chromium`
+- **Targeted Run**:
+  - File: `npx playwright test e2e/nav.spec.ts`
+  - Test Name: `npx playwright test -g "theme toggle"`
+- **Debug**: `npx playwright test --debug`
 
-Favicon worker:
-- Typecheck: `npm run worker:favicon:typecheck`
-- Local dev: `npm run worker:favicon:dev`
-- Deploy: `npm run worker:favicon:deploy`
+### Worker (Favicon)
+- **Dev**: `npm run worker:favicon:dev`
+- **Deploy**: `npm run worker:favicon:deploy`
 
-### Running tests (E2E)
+## Architecture & Data Flow
 
-- E2E test runner: Playwright (`@playwright/test`)
-- Install browsers once (downloads Chromium/Firefox/WebKit): `npx playwright install`
+1.  **Data Loading**:
+    - App loads `nav.yaml` at build time (or runtime via import).
+    - `useNavConfig` hook fetches overrides from `/api/config` (stored in KV).
+    - **Priority**: KV Override > `nav.yaml` Default.
 
-Run all E2E (multi-browser + multi-viewport projects):
-- `npm run test:e2e`
+2.  **State Management**:
+    - **No global store** (Redux/Zustand/Context Providers).
+    - Uses **React Hooks** (`useNavConfig`, `useThemeMode`) and local state.
+    - Data passing via props.
 
-Run only Chromium desktop (fast path):
-- `npm run test:e2e:chromium`
+3.  **Styling**:
+    - **Standard CSS**.
+    - Imports: `App.css`, `index.css`, `pages/*.css`.
+    - **No Tailwind** or CSS-in-JS libraries.
 
-Run a single test file:
-- `npx playwright test e2e/nav.spec.ts`
-
-Run a single test by name:
-- `npx playwright test -g "theme toggle"`
-
-### Running lint/typecheck on one file
-
-ESLint single file:
-- `npx eslint src/lib/navLoad.ts`
-- `npx eslint "workers/favicon/src/index.ts"`
-
-TypeScript is project-based, not per-file:
-- App: `npx tsc -p tsconfig.app.json --noEmit`
-- Worker: `npx tsc -p workers/favicon/tsconfig.json --noEmit`
-
-## Cloudflare Pages Functions (local)
-
-Pages Functions live under `functions/` (routes like `/api/login`, `/api/config`, etc.).
-
-- Note: `npm run dev` runs Vite only; Pages Functions are not executed under plain Vite.
-- For local testing of `/api/*`, use Wrangler Pages dev.
-
-Common workflow (verify with `npx wrangler pages dev --help` for flags):
-- Terminal A: `npm run dev` (Vite, usually `:5173`)
-- Terminal B: `npx wrangler pages dev --proxy 5173` (serve Pages + run Functions, proxying to Vite)
-
-Alternative workflow:
-- `npm run build` then `npx wrangler pages dev dist`
-
-## Code style and conventions
-
-This repo is mostly TypeScript + React, with strict compiler settings.
+## Code Style Guidelines
 
 ### TypeScript
-
-- Strict mode is enabled (`strict: true`). Do not weaken type safety.
-- Prefer `unknown` for untrusted data, then validate.
-  - Pattern used in API: `isRecord` / `isString` / `isNavConfig` style guards before use.
-- Avoid `any`. If unavoidable, prefer narrowing from `unknown` and writing a type guard.
-- Use `import type { ... }` for type-only imports.
-- Avoid large refactors while fixing a bug; keep diffs small and localized.
-
-TS compiler options to keep in mind (`tsconfig.app.json`/`tsconfig.node.json`):
-- `noUnusedLocals`, `noUnusedParameters`: remove unused code or prefix with `_` only if needed.
-- `noUncheckedSideEffectImports`: avoid side-effect-only imports unless required.
-- `verbatimModuleSyntax`: keep imports/exports valid ESM.
-
-### Imports
-
-- ESM only (`package.json` has `"type": "module"`).
-- Prefer this general grouping:
-  1. Side-effect imports (e.g., CSS) if needed
-  2. External packages
-  3. Local modules
-  4. `import type` alongside related imports
-
-Note: existing files are slightly mixed in semicolons/import ordering; follow the local file’s style and keep changes minimal.
+- **Strict Mode**: Enabled (`strict: true`).
+- **No `any`**: Use `unknown` and narrow types.
+- **No Type Suppression**: Avoid `@ts-ignore`, `as any`.
+- **Imports**:
+  - Use `import type` for type-only imports.
+  - Verbatim Module Syntax is enabled.
 
 ### Formatting
+- **No Prettier/Biome**.
+- Indentation: **2 spaces**.
+- Quotes: Single quotes preferred.
+- Semicolons: Always.
+- Minimize diff noise (respect existing formatting).
 
-- No formatter is configured (no Prettier/Biome). ESLint exists but does not enforce full formatting.
-- Keep formatting changes minimal and avoid reformatting entire files.
-- Use 2-space indentation (matches existing code).
+### Naming Conventions
+- **Components**: `PascalCase` (e.g., `NavPage.tsx`)
+- **Hooks**: `camelCase` (e.g., `useNavConfig.ts`)
+- **Functions/Vars**: `camelCase`
+- **Constants**: `UPPER_SNAKE_CASE` (module level)
+- **Types**: `PascalCase`
 
-### Naming
+### Error Handling
+- **Frontend**:
+  - Catch errors in data fetching hooks.
+  - Fail gracefully (e.g., fallback to default config).
+- **API (Functions)**:
+  - Use `functions/api/_util.ts` helpers (`jsonResponse`).
+  - Return explicit HTTP 4xx/5xx codes.
+- **Worker**:
+  - Defend against SSRF (validate protocols/hostnames).
 
-- Types: `PascalCase` (e.g., `NavConfig`, `ThemeMode`)
-- Functions/variables: `camelCase`
-- Constants: `UPPER_SNAKE_CASE` for module-level constants (e.g., `NAV_STORAGE_KEY`)
-- IDs/slugs: use explicit helper functions (e.g., `slugifyId`) rather than ad-hoc logic.
+## Security & Secrets
+- **No `.env` files** committed.
+- **Secrets**: Managed via Cloudflare Pages environment variables.
+- **Admin Auth**: Rely on backend validation (Session/KV).
 
-### Error handling
+## Agent Rules
+- **No Cursor/Copilot rules found**.
+- **Test First**: Check `npm run test:e2e` before major changes.
+- **Verify**: Always run `npm run lint` and `npm run build` after edits.
+- **Frontend Files**: If modifying UI logic, check `App.tsx` and `pages/`.
+- **Backend Files**: API logic is in `functions/api/`. Be careful with KV logic.
 
-Frontend (`src/`):
-- Prefer explicit `try/catch` around `fetch` and JSON parsing.
-- Return `null`/`false` from API wrappers on failure (pattern in `src/lib/navApi.ts`).
-
-Pages Functions (`functions/api/`):
-- Use `jsonResponse()` / `textResponse()` from `functions/api/_util.ts`.
-- Validate request content-type (`isJsonRequest`) where applicable.
-- Return explicit status codes (`401`, `415`, `500`, etc.) and stable error payloads.
-
-Worker (`workers/favicon/`):
-- Keep SSRF defenses intact (hostname checks, protocol checks).
-- Enforce safe defaults (timeouts, size limits, content-type checks).
-
-### React
-
-- Functional components + hooks (no classes).
-- Prefer `useMemo`/`useEffect` patterns already used in `src/pages/*`.
-- Keep UI behavior changes focused; avoid broad component rewrites unless requested.
-
-## Security and secrets
-
-- Do not commit secrets. `.env`-style files are not present here; keep it that way.
-- Admin auth expects Cloudflare Pages environment variables (see `README.md`).
-
-## Cursor / Copilot instructions
-
-- No Cursor rules were found (`.cursor/rules/` and `.cursorrules` are absent).
-- No GitHub Copilot instructions were found (`.github/copilot-instructions.md` is absent).
-
-## Suggested verification checklist for agents
-
-Before finishing a change:
-- `npm run lint`
-- `npm run build`
-- `npm run test:e2e:chromium` (or `npm run test:e2e` for full matrix)
-- If touching worker: `npm run worker:favicon:typecheck`
-- If touching Pages Functions: exercise the route via `wrangler pages dev` locally
+## Verification Checklist
+1. `npm run lint` (Must pass)
+2. `npm run build` (Must pass)
+3. `npm run test:e2e:chromium` (Must pass key flows)
+4. If modifying Worker: `npm run worker:favicon:typecheck`
+5. If modifying API: Verify with `npm run dev:all` manually if possible, or trust E2E.

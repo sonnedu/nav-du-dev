@@ -50,7 +50,9 @@ export async function hmacVerifyBase64Url(secret: string, message: string, signa
 
   try {
     const sigBytes = base64UrlDecodeToBytes(signatureB64Url);
-    return await crypto.subtle.verify('HMAC', key, sigBytes, new TextEncoder().encode(message));
+    const sig = new Uint8Array(sigBytes.byteLength);
+    sig.set(sigBytes);
+    return await crypto.subtle.verify('HMAC', key, sig, new TextEncoder().encode(message));
   } catch {
     return false;
   }

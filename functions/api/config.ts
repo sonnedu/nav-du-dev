@@ -1,4 +1,4 @@
-import { isJsonRequest, jsonResponse, textResponse } from './_util';
+import { isJsonRequest, jsonResponse, sha256Hex, textResponse } from './_util';
 import { requireAdmin } from './_session';
 
 type Env = {
@@ -78,6 +78,19 @@ function isNavConfig(value: unknown): boolean {
   return true;
 }
 
+function parseIfMatchEtag(request: Request): string | null {
+  const raw = request.headers.get('if-match');
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  return trimmed;
+}
+
+async function computeWeakEtagFromJson(json: string): Promise<string> {
+  const hash = await sha256Hex(json);
+  return `W/"${hash}"`;
+}
+
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const kv = context.env.NAV_CONFIG_KV;
 
@@ -88,7 +101,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     try {
       const parsed = JSON.parse(raw) as unknown;
       if (!isNavConfig(parsed)) return jsonResponse({ error: 'invalid stored config' }, 500);
-      return jsonResponse(parsed);
+      const etag = await computeWeakEtagFromJson(raw);
+      return jsonResponse(parsed, 200, { etag, 'cache-control': 'no-store, max-age=0' });
     } catch {
       return jsonResponse({ error: 'invalid stored config' }, 500);
     }
@@ -102,7 +116,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (!isNavConfig(parsed)) return jsonResponse({ error: 'invalid stored config' }, 500);
-    return jsonResponse(parsed);
+    const etag = await computeWeakEtagFromJson(raw);
+    return jsonResponse(parsed, 200, { etag, 'cache-control': 'no-store, max-age=0' });
   } catch {
     return jsonResponse({ error: 'invalid stored config' }, 500);
   }
@@ -119,15 +134,34 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
   if (!isNavConfig(body)) return jsonResponse({ error: 'invalid config' }, 400);
 
   const json = JSON.stringify(body);
+  const desiredIfMatch = parseIfMatchEtag(request);
 
   const kv = context.env.NAV_CONFIG_KV;
   if (!kv && canUseDevStore(context.request, context.env)) {
-    getDevStore().json = json;
-    return jsonResponse({ ok: true, username: auth.username });
+    const store = getDevStore();
+    const existing = store.json;
+
+    if (desiredIfMatch) {
+      if (!existing) return jsonResponse({ error: 'conflict', etag: null }, 409);
+      const existingEtag = await computeWeakEtagFromJson(existing);
+      if (existingEtag !== desiredIfMatch) return jsonResponse({ error: 'conflict', etag: existingEtag }, 409, { etag: existingEtag });
+    }
+
+    store.json = json;
+    const etag = await computeWeakEtagFromJson(json);
+    return jsonResponse({ ok: true, username: auth.username }, 200, { etag });
   }
 
   if (!kv) return jsonResponse({ error: 'NAV_CONFIG_KV not configured' }, 500);
 
+  if (desiredIfMatch) {
+    const existing = await kv.get(CONFIG_KEY);
+    if (!existing) return jsonResponse({ error: 'conflict', etag: null }, 409);
+    const existingEtag = await computeWeakEtagFromJson(existing);
+    if (existingEtag !== desiredIfMatch) return jsonResponse({ error: 'conflict', etag: existingEtag }, 409, { etag: existingEtag });
+  }
+
   await kv.put(CONFIG_KEY, json);
-  return jsonResponse({ ok: true, username: auth.username });
+  const etag = await computeWeakEtagFromJson(json);
+  return jsonResponse({ ok: true, username: auth.username }, 200, { etag });
 };
