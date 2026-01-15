@@ -140,7 +140,7 @@ function SortableLinkRow(props: {
       aria-disabled={!props.canDrag}
     >
       <input type="checkbox" checked={props.selected} onChange={props.onToggleSelected} />
-      <div className="admin-link-name flex-center min-w-0">
+      <div className="admin-link-name min-w-0">
         <span
           ref={setActivatorNodeRef}
           className="drag-handle admin-link-icon-wrap"
@@ -544,7 +544,7 @@ export function AdminDashboard(props: AdminDashboardProps) {
                       checked={selectedLinks[category.id]?.includes(link.id) || false}
                       onChange={() => handleToggleSelect(category.id, link.id)}
                     />
-                    <div className="admin-link-name flex-center min-w-0">
+                    <div className="admin-link-name min-w-0">
                       <span className="text-ellipsis min-w-0">
                         {link.name}
                       </span>
@@ -728,6 +728,7 @@ export function AdminDashboard(props: AdminDashboardProps) {
             placeholder={m.admin.moveToCategory}
             options={config.categories.map((c) => ({ value: c.id, label: c.name }))}
             value={bulkMoveToCategoryId}
+            placement="top"
             onChange={(value) => {
               if (!value) return;
               setBulkMoveToCategoryId(value);

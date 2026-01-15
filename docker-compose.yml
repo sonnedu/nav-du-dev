@@ -1,0 +1,21 @@
+services:
+  nav-du:
+    build: .
+    image: nav-du:latest
+    container_name: nav-du
+    restart: unless-stopped
+    ports:
+      - "8799:8799" # Main App
+      # - "8787:8787" # Favicon Worker (Optional to expose)
+    environment:
+      - ADMIN_USERNAME=admin
+      # Password: admin
+      - ADMIN_PASSWORD_SHA256=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+      # Generate a random secret: openssl rand -hex 32
+      - SESSION_SECRET=change_this_to_a_long_random_string_for_security
+      
+      # Optional Site Config Overrides
+      - VITE_SIDEBAR_TITLE=My Nav
+      - VITE_BANNER_TITLE=Dashboard
+    volumes:
+      - ./data:/data/state

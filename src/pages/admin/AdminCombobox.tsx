@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export type ComboboxOption = {
   value: string;
@@ -19,6 +20,9 @@ type AdminComboboxProps = {
 
   allowCustomValue?: boolean;
   customValueLabel?: (value: string) => string;
+
+  // New prop to control drop direction
+  placement?: 'top' | 'bottom' | 'auto';
 };
 
 function normalize(input: string): string {
@@ -33,7 +37,7 @@ export function AdminCombobox(props: AdminComboboxProps) {
   const internalId = useId();
   const id = props.id ?? internalId;
 
-  const { options, value, onChange, allowCustomValue, customValueLabel } = props;
+  const { options, value, onChange, allowCustomValue, customValueLabel, placement = 'bottom' } = props;
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -51,6 +55,7 @@ export function AdminCombobox(props: AdminComboboxProps) {
   const [isDirty, setIsDirty] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [coords, setCoords] = useState<{ top: number; left: number; width: number; maxHeight?: number; transform?: string } | null>(null);
 
   const filtered = useMemo(() => {
     const q = isDirty ? normalize(query) : '';
@@ -84,9 +89,49 @@ export function AdminCombobox(props: AdminComboboxProps) {
     setIsDirty(false);
     setActiveIndex(-1);
     setQuery('');
+    setCoords(null);
+  };
+
+  const calculateCoords = () => {
+    if (rootRef.current && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      const scrollX = window.scrollX || window.pageXOffset;
+      const scrollY = window.scrollY || window.pageYOffset;
+
+      // Determine placement
+      let finalPlacement = placement;
+      if (placement === 'auto') {
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        // If less than 200px below and more space above, flip to top
+        if (spaceBelow < 200 && spaceAbove > spaceBelow) {
+          finalPlacement = 'top';
+        } else {
+          finalPlacement = 'bottom';
+        }
+      }
+
+      if (finalPlacement === 'top') {
+        setCoords({
+          top: rect.top + scrollY - 4,
+          left: rect.left + scrollX,
+          width: rect.width,
+          transform: 'translateY(-100%)', // Move up by 100% of its own height
+          maxHeight: rect.top - 20, // Limit height to space above
+        });
+      } else {
+        setCoords({
+          top: rect.bottom + scrollY + 4,
+          left: rect.left + scrollX,
+          width: rect.width,
+          maxHeight: window.innerHeight - rect.bottom - 20, // Limit height to space below
+        });
+      }
+    }
   };
 
   const open = () => {
+    calculateCoords();
     setIsOpen(true);
     setIsDirty(false);
     setQuery(selectedLabel);
@@ -101,21 +146,43 @@ export function AdminCombobox(props: AdminComboboxProps) {
   useEffect(() => {
     if (!isOpen) return;
     if (activeIndex < 0) return;
-
-    const el = document.getElementById(`${id}__opt__${activeIndex}`);
-    if (el) el.scrollIntoView({ block: 'nearest' });
+    // Delay scroll slightly to ensure portal is rendered
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`${id}__opt__${activeIndex}`);
+      if (el) el.scrollIntoView({ block: 'nearest' });
+    });
   }, [activeIndex, id, isOpen]);
 
   useEffect(() => {
     const onPointerDown = (e: PointerEvent) => {
-      if (!rootRef.current) return;
-      if (e.target instanceof Node && rootRef.current.contains(e.target)) return;
+      // Check if click is inside input/toggle (rootRef)
+      if (rootRef.current && rootRef.current.contains(e.target as Node)) return;
+      // Check if click is inside portal list (listRef)
+      if (listRef.current && listRef.current.contains(e.target as Node)) return;
+
       close();
     };
 
+    const onResizeOrScroll = () => {
+      if (isOpen) {
+        // Simple strategy: close on scroll/resize to avoid complex positioning logic
+        // or recalculate. For now, closing is safer for mobile/dnd contexts.
+        // Actually, recalculating is better UX but requires debounce.
+        // Let's just recalculate immediately.
+        calculateCoords();
+      }
+    };
+
     window.addEventListener('pointerdown', onPointerDown);
-    return () => window.removeEventListener('pointerdown', onPointerDown);
-  }, []);
+    window.addEventListener('resize', onResizeOrScroll);
+    window.addEventListener('scroll', onResizeOrScroll, { capture: true }); // capture needed for scrolling internal divs
+
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('resize', onResizeOrScroll);
+      window.removeEventListener('scroll', onResizeOrScroll, { capture: true });
+    };
+  }, [isOpen]);
 
   return (
     <div ref={rootRef} className={props.className}>
@@ -132,10 +199,15 @@ export function AdminCombobox(props: AdminComboboxProps) {
           aria-controls={isOpen ? `${id}__listbox` : undefined}
           aria-activedescendant={activeOptionId}
           autoComplete="off"
-          onFocus={() => open()}
+          onFocus={() => {
+            if (!isOpen) open();
+          }}
           onChange={(e) => {
             setQuery(e.target.value);
-            setIsOpen(true);
+            if (!isOpen) {
+              setIsOpen(true);
+              calculateCoords();
+            }
             setIsDirty(true);
             setActiveIndex(0);
           }}
@@ -201,6 +273,7 @@ export function AdminCombobox(props: AdminComboboxProps) {
           className="admin-combobox-toggle"
           aria-label="toggle"
           aria-expanded={isOpen}
+          tabIndex={-1}
           onClick={() => {
             if (isOpen) {
               close();
@@ -214,32 +287,44 @@ export function AdminCombobox(props: AdminComboboxProps) {
         </button>
       </div>
 
-      {isOpen ? (
-        <div
-          ref={listRef}
-          id={`${id}__listbox`}
-          className={props.listClassName}
-          role="listbox"
-          aria-label="options"
-        >
-          {visibleOptions.map((o, index) => (
-            <button
-              key={`${o.value}:${index}`}
-              id={`${id}__opt__${index}`}
-              type="button"
-              className={`admin-combobox-option ${index === activeIndex ? 'is-active' : ''} ${o.value === value ? 'is-selected' : ''}`}
-              role="option"
-              aria-selected={o.value === value}
-              onMouseEnter={() => setActiveIndex(index)}
-              onClick={() => handlePick(o.value)}
+      {isOpen && coords
+        ? createPortal(
+            <div
+              ref={listRef}
+              id={`${id}__listbox`}
+              className={props.listClassName}
+              role="listbox"
+              aria-label="options"
+              style={{
+                position: 'absolute',
+                top: coords.top,
+                left: coords.left,
+                width: coords.width,
+                marginTop: 0,
+                maxHeight: coords.maxHeight ? `${coords.maxHeight}px` : undefined,
+                transform: coords.transform,
+              }}
             >
-              {o.label}
-            </button>
-          ))}
+              {visibleOptions.map((o, index) => (
+                <button
+                  key={`${o.value}:${index}`}
+                  id={`${id}__opt__${index}`}
+                  type="button"
+                  className={`admin-combobox-option ${index === activeIndex ? 'is-active' : ''} ${o.value === value ? 'is-selected' : ''}`}
+                  role="option"
+                  aria-selected={o.value === value}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => handlePick(o.value)}
+                >
+                  {o.label}
+                </button>
+              ))}
 
-          {visibleOptions.length === 0 ? <div className="admin-combobox-empty">No matches</div> : null}
-        </div>
-      ) : null}
+              {visibleOptions.length === 0 ? <div className="admin-combobox-empty">No matches</div> : null}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

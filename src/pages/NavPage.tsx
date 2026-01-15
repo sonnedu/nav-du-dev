@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useDeferredValue } from 'react';
 
 import { applyDefaultIconOnError, getLinkIconUrl } from '../lib/favicon';
 import { useI18n } from '../lib/useI18n';
@@ -227,12 +227,13 @@ export function NavPage(props: {
   }, [orderedCategories, config.site.groupOrder]);
 
   const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
   const indexedLinks = useMemo(() => indexNavLinks(config), [config]);
   const fuses = useMemo(() => createNavFuseIndexes(indexedLinks), [indexedLinks]);
-  const searchResults = useMemo(() => searchNavByPriority(fuses, query), [fuses, query]);
+  const searchResults = useMemo(() => searchNavByPriority(fuses, deferredQuery), [fuses, deferredQuery]);
 
   const groupedSearch = useMemo(() => {
-    const q = query.trim();
+    const q = deferredQuery.trim();
     if (!q) return null;
 
     const byCategory = new Map<

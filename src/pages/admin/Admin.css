@@ -1,3 +1,4 @@
+/* Admin.css content with improved checkboxes */
 .admin-layout {
   display: flex;
   min-height: 100vh;
@@ -566,8 +567,57 @@
   background: var(--primary-soft);
 }
 
+/* Custom Checkbox Style */
+.admin-link-row input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background-color: var(--bg);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: grid;
+  place-content: center;
+  margin: 0;
+}
+
+.admin-link-row input[type="checkbox"]:hover {
+  border-color: var(--primary);
+  background-color: var(--surface-hover);
+}
+
+.admin-link-row input[type="checkbox"]:checked {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.admin-link-row input[type="checkbox"]:checked::after {
+  content: '';
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+/* Dark mode adjustment for checkbox */
+[data-theme='dark'] .admin-link-row input[type="checkbox"]:checked::after {
+  border-color: var(--bg); /* In dark mode, primary is light, so checkmark is dark bg color? Or primary is accent color? */
+  border-color: #000; /* Usually primary is bright in dark mode, let's assume black checkmark */
+}
+/* Actually primary is usually purple/blue. White checkmark is safer for contrast unless primary is very light */
+[data-theme='dark'] .admin-link-row input[type="checkbox"]:checked::after {
+  border-color: #fff;
+}
+
+
 .admin-link-name {
   font-weight: 600;
+  display: flex;
+  align-items: center;
 }
 
 .admin-link-url {

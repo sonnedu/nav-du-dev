@@ -1,4 +1,14 @@
-# Logs
+# --- Dependencies ---
+node_modules/
+.pnp
+.pnp.js
+
+# --- Build Outputs ---
+dist/
+dist-ssr/
+*.tsbuildinfo
+
+# --- Logs ---
 logs
 *.log
 npm-debug.log*
@@ -7,26 +17,49 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# --- Environment Variables ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 *.local
 
-# Cloudflare
-**/.wrangler/
-**/.dev.vars
+# --- Cloudflare & Workers ---
+.wrangler/
+.dev.vars
+.preview_vars
 
-# Playwright
-playwright-report/
+# --- Playwright (Testing) ---
 test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
 
-# Editor directories and files
+# --- Docker ---
+# 忽略 Docker 本地挂载的数据目录（防止将本地状态提交到 Git）
+/data/
+
+# --- IDEs & Editors ---
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+!.vscode/settings.json
+!.vscode/launch.json
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+.history/
+*.sublime-project
+*.sublime-workspace
+
+# --- System Files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Misc ---
+.eslintcache
+coverage/
