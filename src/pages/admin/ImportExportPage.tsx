@@ -125,7 +125,7 @@ export function ImportExportPage({
                   </div>
                 </div>
                 <textarea 
-                  className="admin-input admin-textarea-mono admin-textarea-auto" 
+                  className="admin-input admin-textarea-mono admin-textarea-sm" 
                   value={exportJson} 
                   readOnly 
                 />
@@ -139,7 +139,7 @@ export function ImportExportPage({
                   </div>
                 </div>
                 <textarea 
-                  className="admin-input admin-textarea-mono admin-textarea-auto" 
+                  className="admin-input admin-textarea-mono admin-textarea-sm" 
                   value={exportYaml} 
                   readOnly 
                 />
@@ -154,11 +154,10 @@ export function ImportExportPage({
               <div>
                 <label className="admin-form-label">{m.admin.pasteJsonYaml}</label>
                 <textarea 
-                  className="admin-input admin-textarea-mono admin-textarea-auto" 
+                  className="admin-input admin-textarea-mono admin-textarea-lg" 
                   value={importText}
                   onChange={e => setImportText(e.target.value)}
                   placeholder="Paste JSON or YAML here..."
-                  style={{ minHeight: '300px' }}
                 />
               </div>
                {error && <div className="admin-error-text">{error}</div>}

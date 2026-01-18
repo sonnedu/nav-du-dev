@@ -1330,12 +1330,9 @@ select.admin-select {
 }
 .admin-footer-status-wrap { flex: 1; display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
 .admin-tab-btn { border-radius: 0 !important; padding: 1rem !important; width: auto !important; }
-.admin-textarea-mono { font-family: monospace; }
-.admin-textarea-auto {
-  field-sizing: content;
-  min-height: 150px;
-  resize: vertical;
-}
+.admin-textarea-mono { font-family: monospace; resize: vertical; }
+.admin-textarea-sm { height: 35vh; min-height: 200px; }
+.admin-textarea-lg { height: 65vh; min-height: 400px; }
 
 .admin-section-divider {
   margin-top: 1.5rem;
