@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AdminCombobox } from './AdminCombobox';
 import { AdminDialog } from './AdminDialog';
 import { useI18n } from '../../lib/useI18n';
@@ -31,8 +31,55 @@ export function LinkModal({
   const [desc, setDesc] = useState(() => link?.desc ?? '');
   const [tags, setTags] = useState(() => link?.tags?.join(', ') ?? '');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
+
+  const isDirty =
+    name !== (link?.name ?? '') ||
+    url !== (link?.url ?? '') ||
+    desc !== (link?.desc ?? '') ||
+    tags !== (link?.tags?.join(', ') ?? '') ||
+    targetCategoryId !== categoryId;
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
+      if (e.key === 'Escape') {
+        if (isDeleteDialogOpen || isCloseConfirmOpen) return;
+        
+        if (isDirty) {
+          setIsCloseConfirmOpen(true);
+        } else {
+          onClose();
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('keydown', handleEsc);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('keydown', handleEsc);
+    };
+  }, [isOpen, isDirty, isDeleteDialogOpen, isCloseConfirmOpen, onClose]);
 
   if (!isOpen) return null;
+
+  const handleAttemptClose = () => {
+    if (isDirty) {
+      setIsCloseConfirmOpen(true);
+    } else {
+      onClose();
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +101,17 @@ export function LinkModal({
   return (
     <>
       <AdminDialog
+        isOpen={isCloseConfirmOpen}
+        onClose={() => setIsCloseConfirmOpen(false)}
+        onConfirm={() => {
+          setIsCloseConfirmOpen(false);
+          onClose();
+        }}
+        title={m.admin.unsavedChanges}
+        message={m.admin.confirmLeaveUnsaved}
+        variant="danger"
+      />
+      <AdminDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={() => {
@@ -66,11 +124,11 @@ export function LinkModal({
         message={m.admin.delete}
         variant="danger"
       />
-      <div className="admin-modal-backdrop" onClick={onClose}>
+      <div className="admin-modal-backdrop" onClick={handleAttemptClose}>
         <div className="admin-modal" onClick={e => e.stopPropagation()}>
           <div className="admin-modal-header">
             <h2 className="admin-modal-title">{link ? m.admin.editSiteTitle : m.admin.addSiteTitle}</h2>
-            <button className="btn btn-icon" onClick={onClose}>✕</button>
+            <button className="btn btn-icon" onClick={handleAttemptClose}>✕</button>
           </div>
           <form onSubmit={handleSubmit}>
             <div className="admin-modal-body">
@@ -134,7 +192,7 @@ export function LinkModal({
                   {m.admin.delete}
                 </button>
               )}
-              <button type="button" className="btn" onClick={onClose}>{m.admin.cancel}</button>
+              <button type="button" className="btn" onClick={handleAttemptClose}>{m.admin.cancel}</button>
               <button type="submit" className="btn btn-primary" disabled={!name.trim() || !url.trim()}>
                 {m.admin.save}
               </button>
