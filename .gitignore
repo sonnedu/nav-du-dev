@@ -63,3 +63,7 @@ desktop.ini
 # --- Misc ---
 .eslintcache
 coverage/
+
+# Deployment configs
+wrangler-personal.toml
+wrangler-demo.toml
