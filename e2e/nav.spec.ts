@@ -26,7 +26,7 @@ test.describe('Nav-Du', () => {
     const sidebar = page.locator('.sidebar')
 
     const before = await sidebar.evaluate((el) => el.getBoundingClientRect().top)
-    await page.mouse.wheel(0, 1600)
+    await page.evaluate(() => window.scrollBy(0, 1600))
     await page.waitForTimeout(200)
     const after = await sidebar.evaluate((el) => el.getBoundingClientRect().top)
 
