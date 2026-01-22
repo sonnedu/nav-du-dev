@@ -68,7 +68,8 @@ function isLocalhostRequest(request: Request): boolean {
 function resolveDevSessionSecret(env: Record<string, unknown>): string {
   const configured = env.DEV_SESSION_SECRET;
   if (typeof configured === 'string' && configured.trim()) return configured.trim();
-  return 'dev-only-session-secret-nav-du-2026';
+  // Keep consistent with login.ts default when SESSION_SECRET is not configured.
+  return 'nav-du-session-secret-2026';
 }
 
 function resolveSessionSecret(request: Request, env: Record<string, unknown>): string | null {

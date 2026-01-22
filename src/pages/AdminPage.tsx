@@ -8,10 +8,16 @@ type AdminUser = {
   username: string;
 };
 
-async function apiGetMe(): Promise<AdminUser> {
+type MeResponse = {
+  username: string | null;
+};
+
+async function apiGetMe(): Promise<AdminUser | null> {
   const resp = await fetch('/api/me', { credentials: 'include' });
-  if (!resp.ok) throw new Error('unauthorized');
-  return (await resp.json()) as AdminUser;
+  if (!resp.ok) throw new Error('me failed');
+  const data = (await resp.json()) as MeResponse;
+  if (!data.username) return null;
+  return { username: data.username };
 }
 
 async function apiLogin(username: string, password: string): Promise<void> {
@@ -67,6 +73,7 @@ export function AdminPage(props: {
     try {
       await apiLogin(loginUser, loginPass);
       const u = await apiGetMe();
+      if (!u) throw new Error('login missing session');
       setUser(u);
     } catch {
       setLoginError(m.admin.loginFailed);
