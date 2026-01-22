@@ -53,7 +53,7 @@ interface DialogState {
   message: string | React.ReactNode;
   confirmLabel?: string;
   onConfirm?: () => void;
-  variant?: 'danger' | 'primary';
+  variant?: 'danger' | 'primary' | 'info';
   type?: 'confirm' | 'alert';
 }
 
@@ -116,6 +116,7 @@ function SortableLinkRow(props: {
   link: NavLink;
   domId: string;
   selected: boolean;
+  highlighted?: boolean;
   canDrag: boolean;
   editLabel: string;
   onToggleSelected: () => void;
@@ -136,7 +137,7 @@ function SortableLinkRow(props: {
     <div
       id={props.domId}
       ref={setNodeRef}
-      className={`admin-link-row ${props.selected ? 'selected' : ''} ${isDragging ? 'is-dragging' : ''} ${isOver && !isDragging ? 'is-over' : ''} ${indicatorClass}`}
+      className={`admin-link-row ${props.selected || props.highlighted ? 'selected' : ''} ${isDragging ? 'is-dragging' : ''} ${isOver && !isDragging ? 'is-over' : ''} ${indicatorClass}`}
       style={style}
       aria-disabled={!props.canDrag}
     >
@@ -227,6 +228,8 @@ export function AdminDashboard(props: AdminDashboardProps) {
   const closeDialog = () => setDialog(prev => ({ ...prev, isOpen: false }));
   const showConfirm = (title: string, message: string, onConfirm: () => void, variant: 'danger' | 'primary' = 'primary') => 
     setDialog({ isOpen: true, title, message, onConfirm, variant, type: 'confirm' });
+  const showAlert = (title: string, message: string, variant: 'danger' | 'primary' | 'info' = 'info') =>
+    setDialog({ isOpen: true, title, message, variant, type: 'alert' });
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLinks, setSelectedLinks] = useState<Record<string, string[]>>({});
@@ -237,6 +240,10 @@ export function AdminDashboard(props: AdminDashboardProps) {
   const [editingLink, setEditingLink] = useState<EditingLink | null>(null);
   const [isAddLinkModalOpen, setIsAddLinkModalOpen] = useState(false);
   const [targetCategoryId, setTargetCategoryId] = useState<string>('');
+  const [lastBulkMove, setLastBulkMove] = useState<{ toCategoryId: string; linkIds: string[] } | null>(null);
+
+  const categoryDomId = (categoryId: string) => `admin-cat:${categoryId}`;
+  const linkDomId = (categoryId: string, linkId: string) => `admin-link:${categoryId}:${linkId}`;
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -342,14 +349,23 @@ export function AdminDashboard(props: AdminDashboardProps) {
     showConfirm(
       m.admin.bulkDelete,
       m.admin.confirmBulkDelete(totalSelectedCount),
-      async () => {
-        let nextConfig = { ...config };
-        for (const [catId, linkIds] of Object.entries(selectedLinks)) {
-          nextConfig = removeLinksFromCategory(nextConfig, catId, linkIds);
-        }
+      () => {
+        setTimeout(() => {
+          showConfirm(
+            m.admin.bulkDelete,
+            m.admin.confirmBulkDeleteAgain(totalSelectedCount),
+            async () => {
+              let nextConfig = { ...config };
+              for (const [catId, linkIds] of Object.entries(selectedLinks)) {
+                nextConfig = removeLinksFromCategory(nextConfig, catId, linkIds);
+              }
 
-        const ok = await props.onSaveConfig(nextConfig);
-        if (ok) setSelectedLinks({});
+              const ok = await props.onSaveConfig(nextConfig);
+              if (ok) setSelectedLinks({});
+            },
+            'danger'
+          );
+        }, 0);
       },
       'danger'
     );
@@ -357,22 +373,52 @@ export function AdminDashboard(props: AdminDashboardProps) {
 
   const handleBulkMove = async (toCategoryId: string) => {
     let nextConfig = { ...config };
+    const movedIds: string[] = [];
     for (const [fromCatId, linkIds] of Object.entries(selectedLinks)) {
       if (fromCatId === toCategoryId) continue;
       nextConfig = moveLinksToCategory(nextConfig, fromCatId, toCategoryId, linkIds);
+      movedIds.push(...linkIds);
     }
 
     const ok = await props.onSaveConfig(nextConfig);
-    if (ok) setSelectedLinks({});
+    if (ok) {
+      setSelectedLinks({});
+      if (movedIds.length > 0) {
+        setLastBulkMove({ toCategoryId, linkIds: movedIds });
+      }
+      showAlert(m.admin.moveToCategory, m.admin.saveSuccess);
+    }
   };
+
+  useEffect(() => {
+    if (!lastBulkMove) return;
+
+    const timer = setTimeout(() => {
+      const firstLinkId = lastBulkMove.linkIds[0];
+      const targetDomId = firstLinkId 
+        ? linkDomId(lastBulkMove.toCategoryId, firstLinkId) 
+        : categoryDomId(lastBulkMove.toCategoryId);
+      
+      const targetEl = document.getElementById(targetDomId);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 150);
+
+    const clearTimer = setTimeout(() => {
+      setLastBulkMove(null);
+    }, 2000);
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(clearTimer);
+    };
+  }, [lastBulkMove]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-
-  const categoryDomId = (categoryId: string) => `admin-cat:${categoryId}`;
-  const linkDomId = (categoryId: string, linkId: string) => `admin-link:${categoryId}:${linkId}`;
 
   const applyDropIndicator = (event: DragOverEvent, overDomId: string) => {
     const { over, active } = event;
@@ -537,6 +583,7 @@ export function AdminDashboard(props: AdminDashboardProps) {
                               link={link}
                               domId={linkDomId(category.id, link.id)}
                               selected={selectedLinks[category.id]?.includes(link.id) ?? false}
+                              highlighted={lastBulkMove?.toCategoryId === category.id && lastBulkMove.linkIds.includes(link.id)}
                               canDrag={allowSorting}
                               editLabel={m.admin.edit}
                               onToggleSelected={() => handleToggleSelect(category.id, link.id)}
@@ -581,7 +628,11 @@ export function AdminDashboard(props: AdminDashboardProps) {
                 {category.items.map((link) => (
                   <div
                     key={link.id}
-                    className={`admin-link-row ${selectedLinks[category.id]?.includes(link.id) ? 'selected' : ''}`}
+                    className={`admin-link-row ${
+                      (selectedLinks[category.id]?.includes(link.id) || 
+                       (lastBulkMove?.toCategoryId === category.id && lastBulkMove.linkIds.includes(link.id))) 
+                      ? 'selected' : ''
+                    }`}
                   >
                     <input
                       type="checkbox"

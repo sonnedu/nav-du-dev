@@ -85,6 +85,7 @@ export type Messages = {
     moveToCategory: string;
     bulkDelete: string;
     confirmBulkDelete: (n: number) => string;
+    confirmBulkDeleteAgain: (n: number) => string;
     reorderGroups: string;
     importFile: string;
     exportYaml: string;
@@ -212,6 +213,7 @@ export const zhCN: Messages = {
     moveToCategory: '移动到分类',
     bulkDelete: '批量删除',
     confirmBulkDelete: (n) => `确定删除选中的 ${n} 个链接吗？`,
+    confirmBulkDeleteAgain: (n) => `再次确认：确定要删除选中的 ${n} 个链接吗？此操作不可恢复。`,
     reorderGroups: '调整分组排序',
     importFile: '从文件导入',
     exportYaml: '导出为 YAML',
@@ -340,6 +342,7 @@ export const en: Messages = {
     moveToCategory: 'Move to Category',
     bulkDelete: 'Bulk Delete',
     confirmBulkDelete: (n) => `Are you sure you want to delete ${n} selected links?`,
+    confirmBulkDeleteAgain: (n) => `Final confirmation: delete ${n} selected links? This cannot be undone.`,
     reorderGroups: 'Reorder Groups',
     importFile: 'Import from File',
     exportYaml: 'Export as YAML',

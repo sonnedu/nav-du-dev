@@ -148,23 +148,24 @@ export function moveLinksToCategory(
   toCategoryId: string,
   linkIds: string[],
 ): NavConfig {
+  if (fromCategoryId === toCategoryId) return config;
+  if (linkIds.length === 0) return config;
+
+  const fromCategory = config.categories.find((c) => c.id === fromCategoryId);
+  const toCategory = config.categories.find((c) => c.id === toCategoryId);
+  if (!fromCategory || !toCategory) return config;
+
   const wanted = new Set(linkIds);
+  const toMove = fromCategory.items.filter((i) => wanted.has(i.id));
+  if (toMove.length === 0) return config;
 
-  const toMove: NavLink[] = [];
+  const remaining = fromCategory.items.filter((i) => !wanted.has(i.id));
+  const existingToIds = new Set(toCategory.items.map((i) => i.id));
+  const toAppend = toMove.filter((i) => !existingToIds.has(i.id));
+
   const nextCategories = config.categories.map((c) => {
-    if (c.id === fromCategoryId) {
-      const remaining: NavLink[] = [];
-      for (const item of c.items) {
-        if (wanted.has(item.id)) toMove.push(item);
-        else remaining.push(item);
-      }
-      return { ...c, items: remaining };
-    }
-
-    if (c.id === toCategoryId) {
-      return { ...c, items: [...c.items, ...toMove] };
-    }
-
+    if (c.id === fromCategoryId) return { ...c, items: remaining };
+    if (c.id === toCategoryId) return { ...c, items: [...c.items, ...toAppend] };
     return c;
   });
 
