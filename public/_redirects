@@ -1,2 +1,5 @@
 /ico* /ico* 200
 /api/* /api/:splat 200
+
+# SPA entrypoint (keep as 200 rewrite)
+/admin* / 200
