@@ -1339,3 +1339,80 @@ select.admin-select {
   padding-top: 1.5rem;
   border-top: 1px dashed var(--border);
 }
+
+/* Settings Page */
+.admin-settings-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.admin-settings-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.admin-settings-section-header {
+  padding: 1.25rem 1.5rem 0.75rem 1.5rem;
+  border-bottom: none;
+}
+
+.admin-settings-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+}
+
+.admin-settings-section-body {
+  padding: 0 1.5rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.admin-settings-item {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.admin-settings-section.is-danger {
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.admin-settings-section.is-danger .admin-settings-section-title {
+  color: #ef4444;
+}
+
+.admin-settings-label-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.admin-settings-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.admin-settings-hint {
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  .admin-settings-item {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}

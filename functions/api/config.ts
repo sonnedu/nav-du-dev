@@ -74,6 +74,18 @@ function isNavCategory(value: unknown): boolean {
 function isNavConfig(value: unknown): boolean {
   if (!isRecord(value)) return false;
   if (!isRecord(value.site) || !isString(value.site.title)) return false;
+
+  const s = value.site;
+  if ('sidebarTitle' in s && s.sidebarTitle !== undefined && !isString(s.sidebarTitle)) return false;
+  if ('bannerTitle' in s && s.bannerTitle !== undefined && !isString(s.bannerTitle)) return false;
+  if ('description' in s && s.description !== undefined && !isString(s.description)) return false;
+  if ('defaultTheme' in s && s.defaultTheme !== undefined && !isString(s.defaultTheme)) return false;
+  if ('timeZone' in s && s.timeZone !== undefined && !isString(s.timeZone)) return false;
+  if ('sidebarAvatarSrc' in s && s.sidebarAvatarSrc !== undefined && !isString(s.sidebarAvatarSrc)) return false;
+  if ('deployedDomain' in s && s.deployedDomain !== undefined && !isString(s.deployedDomain)) return false;
+  if ('faviconProxyBase' in s && s.faviconProxyBase !== undefined && !isString(s.faviconProxyBase)) return false;
+  if ('adminPath' in s && s.adminPath !== undefined && !isString(s.adminPath)) return false;
+
   if (!Array.isArray(value.categories) || !value.categories.every(isNavCategory)) return false;
   return true;
 }

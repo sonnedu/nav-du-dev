@@ -28,6 +28,7 @@ import { AdminCombobox } from './AdminCombobox';
 import { AdminDialog } from './AdminDialog';
 import { CategoryPage } from './CategoryPage';
 import { ImportExportPage } from './ImportExportPage';
+import { SettingsPage } from './SettingsPage';
 import { LinkModal } from './LinkModal';
 import './Admin.css';
 
@@ -43,7 +44,7 @@ interface AdminDashboardProps {
 }
 
 type EditingLink = { categoryId: string; link: NavLink };
-type AdminPageType = 'links' | 'categories' | 'import-export';
+type AdminPageType = 'links' | 'categories' | 'settings' | 'import-export';
 type DropIndicator = { domId: string; position: 'top' | 'bottom' } | null;
 
 interface DialogState {
@@ -185,6 +186,7 @@ export function AdminDashboard(props: AdminDashboardProps) {
     const params = new URLSearchParams(window.location.search);
     const p = params.get('page');
     if (p === 'categories') return 'categories';
+    if (p === 'settings') return 'settings';
     if (p === 'import-export') return 'import-export';
     return 'links';
   };
@@ -203,12 +205,18 @@ export function AdminDashboard(props: AdminDashboardProps) {
       return;
     }
 
+    if (activePage === 'settings' && isSettingsDirty && next !== 'settings') {
+      showConfirm(m.admin.settings, m.admin.confirmLeaveUnsaved, performGoTo);
+      return;
+    }
+
     performGoTo();
   };
 
   const [activePage, setActivePage] = useState<AdminPageType>(() => getPageFromUrl());
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCategoriesDirty, setIsCategoriesDirty] = useState(false);
+  const [isSettingsDirty, setIsSettingsDirty] = useState(false);
 
   const [dialog, setDialog] = useState<DialogState>({
     isOpen: false,
@@ -627,7 +635,6 @@ export function AdminDashboard(props: AdminDashboardProps) {
           <h2 className="admin-sidebar-title">
             {props.config.site.title} {m.app.adminTitleSuffix}
           </h2>
-          {props.user.username !== 'dev' && <div className="admin-sidebar-user">{props.user.username}</div>}
         </div>
         <nav className="admin-sidebar-nav">
           <button 
@@ -648,23 +655,13 @@ export function AdminDashboard(props: AdminDashboardProps) {
           >
             <span>{m.admin.importExport}</span>
           </button>
-          <div className="flex-1" />
-          <button
-            className="admin-nav-item"
-            onClick={() => {
-              showConfirm(
-                m.admin.reset,
-                m.admin.resetConfirm,
-                async () => {
-                  await props.onResetConfig();
-                  setIsSidebarOpen(false);
-                },
-                'danger'
-              );
-            }}
+          <button 
+            className={`admin-nav-item ${activePage === 'settings' ? 'active' : ''}`} 
+            onClick={() => goToPage('settings')}
           >
-            <span>{m.admin.reset}</span>
+            <span>{m.admin.settings}</span>
           </button>
+          <div className="flex-1" />
         </nav>
         <div className="admin-sidebar-footer">
           <div className="admin-sidebar-footer-nav">
@@ -736,6 +733,23 @@ export function AdminDashboard(props: AdminDashboardProps) {
           )}
           {activePage === 'import-export' && (
             <ImportExportPage config={config} onSave={async (next) => props.onSaveConfig(next)} />
+          )}
+          {activePage === 'settings' && (
+            <SettingsPage
+              config={config}
+              onSave={async (next) => props.onSaveConfig(next)}
+              onDirtyChange={(dirty) => setIsSettingsDirty(dirty)}
+              onReset={() => {
+                showConfirm(
+                  m.admin.reset,
+                  m.admin.resetConfirm,
+                  async () => {
+                    await props.onResetConfig();
+                  },
+                  'danger'
+                );
+              }}
+            />
           )}
         </main>
       </div>

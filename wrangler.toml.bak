@@ -1,0 +1,7 @@
+name = "demo-nav-du"
+compatibility_date = "2025-01-01"
+pages_build_output_dir = "dist"
+
+[[kv_namespaces]]
+binding = "NAV_CONFIG_KV"
+id = "eda8d2c4a2a846dd8bdae2302df3c7d8"

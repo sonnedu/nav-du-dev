@@ -100,6 +100,25 @@ export type Messages = {
     confirm: string;
     ok: string;
 
+    settings: string;
+    siteTitle: string;
+    sidebarTitle: string;
+    bannerTitle: string;
+    siteDescription: string;
+    defaultTheme: string;
+    timeZone: string;
+    sidebarAvatar: string;
+    deployedDomain: string;
+    faviconProxy: string;
+    adminPath: string;
+    themeLight: string;
+    themeDark: string;
+    themeSystem: string;
+    settingsGeneral: string;
+    settingsAppearance: string;
+    settingsAdvanced: string;
+    settingsDangerZone: string;
+
     confirmDeleteGroup: (g: string) => string;
     confirmDeleteCategoryWithLinks: (name: string, count: number) => string;
     groupRequired: string;
@@ -207,6 +226,25 @@ export const zhCN: Messages = {
     confirmLeaveUnsaved: '当前有未保存的修改，确定要离开吗？',
     confirm: '确定',
     ok: '知道了',
+
+    settings: '系统设置',
+    siteTitle: '站点标题',
+    sidebarTitle: '侧栏标题',
+    bannerTitle: '横幅标题',
+    siteDescription: '站点描述',
+    defaultTheme: '默认主题',
+    timeZone: '时区',
+    sidebarAvatar: '侧栏头像 URL',
+    deployedDomain: '部署域名',
+    faviconProxy: '图标代理前缀',
+    adminPath: '管理后台路径',
+    themeLight: '浅色',
+    themeDark: '深色',
+    themeSystem: '跟随系统',
+    settingsGeneral: '常用设置',
+    settingsAppearance: '外观定制',
+    settingsAdvanced: '高级选项',
+    settingsDangerZone: '危险区域',
 
     confirmDeleteGroup: (g) => `确定删除分组「${g}」？该分组下分类将变为未分组。`,
     confirmDeleteCategoryWithLinks: (name, count) =>
@@ -316,6 +354,25 @@ export const en: Messages = {
     confirmLeaveUnsaved: 'You have unsaved changes. Leave anyway?',
     confirm: 'Confirm',
     ok: 'OK',
+
+    settings: 'Settings',
+    siteTitle: 'Site Title',
+    sidebarTitle: 'Sidebar Title',
+    bannerTitle: 'Banner Title',
+    siteDescription: 'Site Description',
+    defaultTheme: 'Default Theme',
+    timeZone: 'Time Zone',
+    sidebarAvatar: 'Sidebar Avatar URL',
+    deployedDomain: 'Deployed Domain',
+    faviconProxy: 'Favicon Proxy Base',
+    adminPath: 'Admin Path',
+    themeLight: 'Light',
+    themeDark: 'Dark',
+    themeSystem: 'System',
+    settingsGeneral: 'General',
+    settingsAppearance: 'Appearance',
+    settingsAdvanced: 'Advanced',
+    settingsDangerZone: 'Danger Zone',
 
     confirmDeleteGroup: (g) => `Delete group "${g}"? Categories under it will become ungrouped.`,
     confirmDeleteCategoryWithLinks: (name, count) =>
